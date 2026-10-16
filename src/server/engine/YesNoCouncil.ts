@@ -8,7 +8,7 @@ import type {
 } from "../../shared/types.js";
 
 import { yesNoExpertSchema, yesNoJudgeSchema } from "./schemas.js";
-import { CouncilError, binaryProposition } from "./logic.js";
+import { CouncilError } from "./logic.js";
 
 import type { Execution } from "./Execution.js";
 import { words } from "./brevity.js";

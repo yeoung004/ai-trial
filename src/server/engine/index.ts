@@ -11,9 +11,9 @@ import type {
   TerminationReason,
   CouncilStage,
 } from "../../shared/types.js";
-import { type ModelAdapter, type StructuredResponse } from "./provider.js";
+import { type ModelAdapter } from "./provider.js";
 
-import { CouncilError, binaryProposition, estimatedCost } from "./logic.js";
+import { CouncilError, binaryProposition } from "./logic.js";
 
 export { CouncilError } from "./logic.js";
 export type {
@@ -29,7 +29,7 @@ export interface EngineLogEvent {
   latencyMs?: number;
   inputTokens?: number;
   outputTokens?: number;
-  estimatedCost?: number;
+  estimatedCost?: number | null;
   retryCount?: number;
   terminationReason?: TerminationReason;
 }

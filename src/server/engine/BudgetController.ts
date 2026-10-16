@@ -5,7 +5,10 @@ import type {
   CallStage,
   DebateExpertRun,
 } from "../../shared/types.js";
-import { estimatedCost, CouncilError } from "./logic.js";
+import { CouncilError } from "./logic.js";
+import { estimatedCost as priceEstimate } from "../../lib/ai/pricing/estimateCost.js";
+// Missing prices cannot make a bounded run appear affordable.
+const estimatedCost = (...args: Parameters<typeof priceEstimate>) => priceEstimate(...args) ?? Infinity;
 const inputEstimate: Record<CallStage, number> = {
   role_generation: 350,
   yes_no_expert: 500,
@@ -120,7 +123,7 @@ export function canAffordOptional(
     );
   }, 0);
   return (
-    execution.usage().totalCost + optional + execution.estimatedJudgeCost() <=
+    (execution.usage().totalCost ?? Infinity) + optional + execution.estimatedJudgeCost() <=
     limit
   );
 }

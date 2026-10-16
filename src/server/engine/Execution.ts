@@ -27,7 +27,8 @@ import {
   type StructuredResponse,
 } from "./provider.js";
 
-import { CouncilError, estimatedCost } from "./logic.js";
+import { CouncilError } from "./logic.js";
+import { estimatedCost } from "../../lib/ai/pricing/estimateCost.js";
 
 import type { CouncilDependencies, EngineLogEvent } from "./index.js";
 type BudgetKey =
@@ -168,7 +169,8 @@ export class Execution {
       totalInputTokens,
       totalOutputTokens,
       totalTokens: totalInputTokens + totalOutputTokens,
-      totalCost: this.calls.reduce((sum, call) => sum + call.estimatedCost, 0),
+      totalCost: this.calls.every((call) => call.costKnown)
+        ? this.calls.reduce((sum, call) => sum + (call.estimatedCost ?? 0), 0) : null,
       costComplete: this.calls.every((call) => call.costKnown),
       totalLatencyMs: Date.now() - this.startTime,
     };
@@ -214,7 +216,7 @@ export class Execution {
           tokensKnown: response.tokensKnown !== false,
           inputTokens: response.inputTokens,
           outputTokens: response.outputTokens,
-          estimatedCost: estimatedCost(
+          estimatedCost: response.tokensKnown === false ? null : estimatedCost(
             args.model,
             response.inputTokens,
             response.outputTokens,
@@ -253,13 +255,13 @@ export class Execution {
           tokensKnown: !!response && response.tokensKnown !== false,
           inputTokens: response?.inputTokens ?? 0,
           outputTokens: response?.outputTokens ?? 0,
-          estimatedCost: response
+          estimatedCost: response && response.tokensKnown !== false
             ? estimatedCost(
                 args.model,
                 response.inputTokens,
                 response.outputTokens,
               )
-            : 0,
+            : null,
           latencyMs: response?.latencyMs || latencyMs,
           costKnown:
             !!response &&

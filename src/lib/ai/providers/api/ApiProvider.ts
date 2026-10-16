@@ -5,6 +5,12 @@ import type {
   ProviderHealth,
   StructuredCall,
 } from "../../core/types.js";
+import { AIProviderError, mapProviderError } from "../../core/errors.js";
+import { fallbackModels as openaiModels } from "../openai/fallbackModels.js";
+import { fallbackModels as anthropicModels } from "../anthropic/fallbackModels.js";
+import { fallbackModels as googleModels } from "../google/fallbackModels.js";
+import { fallbackModels as gatewayModels } from "../gateway/fallbackModels.js";
+import type { ModelConfig } from "../../../../shared/types.js";
 import { aiSdkModelAdapter } from "./ApiGeneration.js";
 
 export const apiConnections = [
@@ -61,7 +67,20 @@ export function isTextModel(id: string): boolean {
   );
 }
 export class ApiProvider implements AIProvider {
-  readonly capabilities = { structuredOutput: true, subscription: false };
+  readonly capabilities = { modelDiscovery: true, structuredOutput: true, streaming: false, usageReporting: true };
+  get fallbackModels(): ModelDescriptor[] {
+    const catalogs: Record<string, ModelConfig[]> = {
+      openai: openaiModels, anthropic: anthropicModels, google: googleModels, gateway: gatewayModels,
+    };
+    return (catalogs[this.id] ?? []).map((model) => ({
+      id: model.id, providerId: model.provider, model: model.model,
+      displayName: model.displayName, available: model.enabled,
+      contextWindow: model.maxContextTokens,
+      inputPricePerMillion: model.inputCostPerMillion,
+      outputPricePerMillion: model.outputCostPerMillion,
+      capabilities: { text: true },
+    }));
+  }
   constructor(readonly connection: (typeof apiConnections)[number]) {}
   get id() {
     return this.connection.id;
@@ -76,7 +95,11 @@ export class ApiProvider implements AIProvider {
     );
   }
   async listModels(): Promise<ModelDescriptor[]> {
-    if (!this.configured()) throw new Error("Authentication required");
+    try { return await this.discoverModels(); }
+    catch (error) { throw mapProviderError(error); }
+  }
+  private async discoverModels(): Promise<ModelDescriptor[]> {
+    if (!this.configured()) throw new AIProviderError("AUTHENTICATION");
     const base =
       this.id === "compatible"
         ? `${process.env.COMPATIBLE_BASE_URL!.replace(/\/$/, "")}/models`
@@ -151,19 +174,24 @@ export class ApiProvider implements AIProvider {
       await this.listModels();
       return { status: "connected" };
     } catch (error) {
-      const status = (error as { status?: number }).status;
+      const mapped = mapProviderError(error);
       return {
         status:
-          status === 401 || status === 403
+          mapped.code === "AUTHENTICATION"
             ? "authentication_required"
-            : status === 429
+            : mapped.code === "RATE_LIMIT"
               ? "rate_limited"
               : "unavailable",
-        message: "Could not verify this provider connection.",
+        message: mapped.message,
       };
     }
   }
-  generate<T>(request: StructuredCall<T>) {
-    return aiSdkModelAdapter.generate(request);
+  async generate<T>(request: StructuredCall<T>) {
+    if (request.model.provider !== this.id) throw new AIProviderError("MODEL_UNAVAILABLE");
+    try { return await aiSdkModelAdapter.generate(request); }
+    catch (error) {
+      if (request.signal?.aborted) throw error;
+      throw mapProviderError(error);
+    }
   }
 }

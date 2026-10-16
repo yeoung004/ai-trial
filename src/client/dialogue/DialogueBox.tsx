@@ -28,6 +28,11 @@ export function DialogueBox({ court }: { court: CouncilState }) {
             <b>{"key_risk" in judge ? "Keep in mind: " : "Next step: "}</b>
             {"key_risk" in judge ? judge.key_risk : judge.recommendation}
           </p>
+          <p className="metadata">
+            {court.result?.usage.costComplete && court.result.usage.totalCost != null
+              ? `Estimated cost: $${court.result.usage.totalCost.toFixed(4)}`
+              : "Cost unavailable"}
+          </p>
           <button className="primary" onClick={court.reset}>
             Ask another question →
           </button>

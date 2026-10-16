@@ -1,19 +1,23 @@
 import { z } from "zod";
+import { PROVIDER_IDS } from "../../shared/types";
 
 export const SETTINGS_KEY = "ai-court-settings-v1";
-const modelId = z.string().catch("");
+const modelId = z.string().refine((value) => value === "" ||
+  (PROVIDER_IDS.some((id) => value.startsWith(`${id}:`)) && value.split(":").slice(1).join(":").length > 0),
+).catch("");
 const budget = (fallback: number) => z.number().int().min(50).max(2000).catch(fallback);
 
 // Stored JSON is untrusted. Recover invalid fields independently so valid
 // preferences survive older versions, partial writes, and manual edits.
 export const settingsSchema = z.object({
   primaryProvider: z.string().refine((value) =>
-    ["muse", "openai", "anthropic", "google", "meta", "compatible", "gateway"].includes(value),
-  ).catch("muse"),
+    value === "" || PROVIDER_IDS.some((id) => id === value),
+  ).catch(""),
   roleGeneratorModelId: modelId,
   defaultExpertModelId: modelId,
   judgeModelId: modelId,
-  expertModelOverrides: z.record(z.string().regex(/^[0-4]$/), z.string()).catch({}),
+  expertModelOverrides: z.record(z.string().regex(/^[0-4]$/), modelId).catch({})
+    .transform((values) => Object.fromEntries(Object.entries(values).filter(([, value]) => value !== ""))),
   maxDebateRounds: z.number().int().min(1).max(3).catch(3),
   maxCost: z.string().refine((value) => value === "" ||
     (value.trim() !== "" && Number.isFinite(Number(value)) && Number(value) > 0),

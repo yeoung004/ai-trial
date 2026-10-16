@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runCouncil, generateRoles, CouncilError, type ModelAdapter, type StructuredCall } from "./index.js";
+import { runCouncil, generateRoles, type ModelAdapter, type StructuredCall } from "./index.js";
 import { stancesCompatible } from "./logic.js";
 import type { CouncilRequest, DebateExpertAnswer, ExpertRole, ModelConfig, CallStage, StageEvent } from "../../shared/types.js";
 
@@ -283,4 +283,15 @@ describe("guards and accounting", () => {
     await expect(runCouncil(request("DEBATE"), { adapter, signal: controller.signal })).rejects.toMatchObject({ code: "CANCELLED" });
     expect(count(adapter, "judge")).toBe(0);
   });
+});
+
+it("records unknown pricing as null while preserving mandatory Judge execution", async () => {
+  const input = request("YES_NO");
+  input.models.registry = registry.map(({ inputCostPerMillion: _input, outputCostPerMillion: _output, ...model }) => model);
+  const adapter = new StubAdapter();
+  const result = await runCouncil(input, { adapter });
+  expect(result.usage.totalCost).toBeNull();
+  expect(result.usage.costComplete).toBe(false);
+  expect(result.usage.calls.every((call) => call.estimatedCost === null)).toBe(true);
+  expect(count(adapter, "judge")).toBe(1);
 });

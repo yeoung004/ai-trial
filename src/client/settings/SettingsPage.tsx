@@ -122,12 +122,16 @@ export default function SettingsPage({
             </button>
           </div>
           {catalog.error && <p role="alert">{catalog.error}</p>}
+          {!catalog.loading && !catalog.error && !catalog.providers.some((p) => p.health.status === "connected") && (
+            <p role="status">No AI provider configured. Configure a server API key, refresh models, and select a model for each stage.</p>
+          )}
           <label className="setting-field">
             <span>Primary provider</span>
             <select
               value={settings.primaryProvider}
               onChange={(e) => update("primaryProvider", e.target.value)}
             >
+              <option value="">Select a provider</option>
               {catalog.providers.map((provider) => (
                 <option key={provider.id} value={provider.id}>
                   {provider.displayName}
@@ -214,42 +218,11 @@ export default function SettingsPage({
                     : "Fallback model list."}
                 </p>
               )}
-              {provider.usage && (
-                <div className="usage-windows">
-                  <h3>Muse usage</h3>
-                  {[
-                    ["5-hour window", provider.usage.fiveHourWindow],
-                    ["Weekly", provider.usage.weeklyWindow],
-                  ].map(([label, window]) => {
-                    if (!window || typeof window === "string") return null;
-                    return (
-                      <label key={String(label)}>
-                        {String(label)} <b>{window.usedPercent}%</b>
-                        <progress
-                          max={100}
-                          value={Math.min(100, window.usedPercent)}
-                        />
-                        <small>
-                          Resets {new Date(window.resetsAtMs).toLocaleString()}
-                        </small>
-                      </label>
-                    );
-                  })}
-                  <small>
-                    As of{" "}
-                    {new Date(provider.usage.observedAtMs).toLocaleString()}
-                  </small>
-                </div>
-              )}
-              {provider.id === "muse" && !provider.usage && (
-                <p className="metadata">Subscription usage unavailable.</p>
-              )}
             </article>
           ))}
           <p className="metadata">
-            Credentials stay in the server environment. Muse uses your local
-            browser sign-in. Paid providers are used only when explicitly
-            selected for a stage.
+            Credentials stay in the server environment. Providers are used only
+            when explicitly selected for a stage.
           </p>
         </section>
       )}

@@ -80,7 +80,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   const raw = await response.text();
-  let body: unknown = null;
+  let body: unknown;
   try {
     body = raw ? JSON.parse(raw) : null;
   } catch {
@@ -121,7 +121,7 @@ export const api = {
     request<{
       roles: CouncilRole[];
       previewId?: string;
-      usage?: { totalCost?: number; costComplete?: boolean };
+      usage?: { totalCost?: number | null; costComplete?: boolean };
     }>("/api/roles", { method: "POST", body: JSON.stringify(data) }),
   start: (data: CouncilRequest) =>
     request<{ id: string }>("/api/executions", {

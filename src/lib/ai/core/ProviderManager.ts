@@ -16,7 +16,6 @@ export class ProviderManager {
   private readonly pending = new Map<string, Promise<ProviderSnapshot>>();
   constructor(
     readonly registry: ProviderRegistry,
-    private readonly fallback: ModelDescriptor[] = [],
     private readonly now = Date.now,
   ) {}
   async snapshot(id: string, refresh = false): Promise<ProviderSnapshot> {
@@ -47,7 +46,7 @@ export class ProviderManager {
       } catch {
         cached = {
           models:
-            cached?.models ?? this.fallback.filter((m) => m.providerId === id),
+            cached?.models ?? provider.fallbackModels ?? [],
           at: cached?.at ?? 0,
           checkedAt: this.now(),
           error: "Could not refresh models.",
@@ -64,14 +63,6 @@ export class ProviderManager {
       }
       this.health.set(id, health);
     }
-    let usage = null;
-    if (provider.getUsage && health.value.status === "connected") {
-      try {
-        usage = await provider.getUsage();
-      } catch {
-        /* Optional usage is explicitly unavailable. */
-      }
-    }
     return {
       id,
       displayName: provider.displayName,
@@ -80,7 +71,6 @@ export class ProviderManager {
       source: cached.error ? (cached.at ? "cached" : "fallback") : "live",
       fetchedAt: cached.at || undefined,
       error: cached.error,
-      usage,
     };
   }
   snapshots(refresh = false) {

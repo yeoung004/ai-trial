@@ -1,127 +1,13 @@
 import type { ModelConfig } from "../shared/types";
+import { PROVIDER_IDS } from "../shared/types";
+import { fallbackModels as openaiModels } from "../lib/ai/providers/openai/fallbackModels.js";
+import { fallbackModels as anthropicModels } from "../lib/ai/providers/anthropic/fallbackModels.js";
+import { fallbackModels as googleModels } from "../lib/ai/providers/google/fallbackModels.js";
+import { fallbackModels as gatewayModels } from "../lib/ai/providers/gateway/fallbackModels.js";
 
-// These are model identifiers, not availability guarantees. A provider key (or
-// gateway key) still has to be configured before a model can be called. Gateway
-// prices were read from its model catalog on 2026-10-15 and are editable.
-// Direct OpenAI prices were checked against official OpenAI model/pricing pages.
-export const DEFAULT_MODELS: ModelConfig[] = [
-  {
-    id: "gateway:gpt-5.4-nano",
-    provider: "gateway",
-    model: "openai/gpt-5.4-nano",
-    displayName: "GPT-5.4 Nano (Gateway)",
-    tier: "economy",
-    inputCostPerMillion: 0.2,
-    outputCostPerMillion: 1.25,
-    enabled: true,
-  },
-  {
-    id: "gateway:gpt-5.4-mini",
-    provider: "gateway",
-    model: "openai/gpt-5.4-mini",
-    displayName: "GPT-5.4 Mini (Gateway)",
-    tier: "standard",
-    inputCostPerMillion: 0.75,
-    outputCostPerMillion: 4.5,
-    enabled: true,
-  },
-  {
-    id: "gateway:gpt-5.6-sol",
-    provider: "gateway",
-    model: "openai/gpt-5.6-sol",
-    displayName: "GPT-5.6 Sol (Gateway)",
-    tier: "judge",
-    inputCostPerMillion: 4,
-    outputCostPerMillion: 20,
-    enabled: true,
-  },
-  {
-    id: "gateway:claude-sonnet-5.5",
-    provider: "gateway",
-    model: "anthropic/claude-sonnet-5.5",
-    displayName: "Claude Sonnet 5.5 (Gateway)",
-    tier: "standard",
-    inputCostPerMillion: 2,
-    outputCostPerMillion: 10,
-    enabled: true,
-  },
-  {
-    id: "gateway:claude-opus-5.5",
-    provider: "gateway",
-    model: "anthropic/claude-opus-5.5",
-    displayName: "Claude Opus 5.5 (Gateway)",
-    tier: "judge",
-    inputCostPerMillion: 4,
-    outputCostPerMillion: 20,
-    enabled: true,
-  },
-  {
-    id: "gateway:gemini-3.7-flash",
-    provider: "gateway",
-    model: "google/gemini-3.7-flash",
-    displayName: "Gemini 3.7 Flash (Gateway)",
-    tier: "economy",
-    inputCostPerMillion: 0.75,
-    outputCostPerMillion: 3.75,
-    enabled: true,
-  },
-  {
-    id: "openai:gpt-5.4-nano",
-    provider: "openai",
-    model: "gpt-5.4-nano",
-    displayName: "GPT-5.4 Nano",
-    tier: "economy",
-    inputCostPerMillion: 0.2,
-    outputCostPerMillion: 1.25,
-    enabled: true,
-  },
-  {
-    id: "openai:gpt-5.4-mini",
-    provider: "openai",
-    model: "gpt-5.4-mini",
-    displayName: "GPT-5.4 Mini",
-    tier: "standard",
-    inputCostPerMillion: 0.75,
-    outputCostPerMillion: 4.5,
-    enabled: true,
-  },
-  {
-    id: "openai:gpt-5.6-sol",
-    provider: "openai",
-    model: "gpt-5.6-sol",
-    displayName: "GPT-5.6 Sol",
-    tier: "judge",
-    inputCostPerMillion: 4,
-    outputCostPerMillion: 20,
-    enabled: true,
-  },
-  {
-    id: "anthropic:claude-sonnet-5-5",
-    provider: "anthropic",
-    model: "claude-sonnet-5-5",
-    displayName: "Claude Sonnet 5.5",
-    tier: "standard",
-    enabled: true,
-  },
-  {
-    id: "anthropic:claude-opus-5-5",
-    provider: "anthropic",
-    model: "claude-opus-5-5",
-    displayName: "Claude Opus 5.5",
-    tier: "judge",
-    enabled: true,
-  },
-  {
-    id: "google:gemini-3.7-flash",
-    provider: "google",
-    model: "gemini-3.7-flash",
-    displayName: "Gemini 3.7 Flash",
-    tier: "economy",
-    enabled: true,
-  },
-];
+export const DEFAULT_MODELS: ModelConfig[] = [...openaiModels, ...anthropicModels, ...googleModels, ...gatewayModels];
+const PROVIDERS = new Set<string>(PROVIDER_IDS);
 
-const PROVIDERS = new Set(["muse", "compatible", "meta", "gateway", "openai", "anthropic", "google"]);
 const TIERS = new Set(["economy", "standard", "premium", "judge"]);
 
 function requiredString(value: unknown, field: string): string {

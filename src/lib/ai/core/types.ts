@@ -48,14 +48,11 @@ export interface ProviderHealth {
     | "rate_limited";
   message?: string;
 }
-export interface UsageWindow {
-  usedPercent: number;
-  resetsAtMs: number;
-}
-export interface ProviderUsage {
-  observedAtMs: number;
-  fiveHourWindow?: UsageWindow;
-  weeklyWindow?: UsageWindow;
+export interface ProviderCapabilities {
+  modelDiscovery: boolean;
+  structuredOutput: boolean;
+  streaming: boolean;
+  usageReporting: boolean;
 }
 export interface ProviderSnapshot {
   id: string;
@@ -65,5 +62,4 @@ export interface ProviderSnapshot {
   source: "live" | "cached" | "fallback";
   fetchedAt?: number;
   error?: string;
-  usage?: ProviderUsage | null;
 }

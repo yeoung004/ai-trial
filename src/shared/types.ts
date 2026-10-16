@@ -2,7 +2,8 @@
 export type CouncilMode = "YES_NO" | "DEBATE";
 export type RoleMode = "AUTO" | "MANUAL" | "HYBRID";
 export type AdaptiveCompute = "LOW" | "BALANCED" | "HIGH";
-export type ModelProvider = "muse" | "compatible" | "meta" | "gateway" | "openai" | "anthropic" | "google";
+export const PROVIDER_IDS = ["compatible", "meta", "gateway", "openai", "anthropic", "google"] as const;
+export type ModelProvider = (typeof PROVIDER_IDS)[number];
 export type ModelTier = "economy" | "standard" | "premium" | "judge";
 export type EvidenceStatus = "KNOWN" | "INFERRED" | "UNCERTAIN";
 
@@ -133,7 +134,7 @@ export interface ModelCallUsage {
   success: boolean;
   inputTokens: number;
   outputTokens: number;
-  estimatedCost: number;
+  estimatedCost: number | null;
   costKnown: boolean;
   latencyMs: number;
   tokensKnown?: boolean;
@@ -146,7 +147,7 @@ export interface UsageSummary {
   totalInputTokens: number;
   totalOutputTokens: number;
   totalTokens: number;
-  totalCost: number;
+  totalCost: number | null;
   /** False when any selected model lacked pricing metadata. */
   costComplete: boolean;
   totalLatencyMs: number;

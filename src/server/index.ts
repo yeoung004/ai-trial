@@ -61,7 +61,7 @@ function combinedUsage(preview: UsageSummary | undefined, run: UsageSummary): Us
     totalInputTokens: preview.totalInputTokens + run.totalInputTokens,
     totalOutputTokens: preview.totalOutputTokens + run.totalOutputTokens,
     totalTokens: preview.totalTokens + run.totalTokens,
-    totalCost: preview.totalCost + run.totalCost,
+    totalCost: preview.totalCost === null || run.totalCost === null ? null : preview.totalCost + run.totalCost,
     totalLatencyMs: preview.totalLatencyMs + run.totalLatencyMs,
     costComplete: preview.costComplete && run.costComplete,
   };
@@ -95,7 +95,7 @@ function summary(record: Record<string, unknown>) {
     status: record.status ?? 'complete',
     decision: ((result.judge ?? {}) as Record<string, unknown>).decision,
     conclusion: ((result.judge ?? {}) as Record<string, unknown>).conclusion,
-    cost: usage.totalCost ?? usage.estimatedCost ?? 0,
+    cost: usage.totalCost ?? usage.estimatedCost ?? null,
     costComplete: usage.costComplete !== false,
     tokens: usage.totalTokens ?? 0,
   };
@@ -129,7 +129,7 @@ async function parsedRequest(body: unknown): Promise<CouncilRequest> {
 async function availableModels(refresh = false): Promise<ModelConfig[]> {
   const [snapshots, saved] = await Promise.all([providerManager.snapshots(refresh), getModels()]);
   return snapshots.flatMap(provider => {
-    const rows = provider.models.length ? provider.models : saved.filter(m => m.provider === provider.id).slice(0, 2).map(m => ({ id: m.id, model: m.model, displayName: m.displayName, available: true, contextWindow: m.maxContextTokens }));
+    const rows = provider.models;
     return rows.map(row => {
       const prior = saved.find(m => m.provider === provider.id && m.model === row.model);
       return { ...prior, id: row.id, provider: provider.id as ModelConfig['provider'], model: row.model, displayName: row.displayName, enabled: row.available, tier: prior?.tier ?? 'standard', maxContextTokens: row.contextWindow };
@@ -195,7 +195,7 @@ app.post('/api/executions', async (req, res) => {
     return;
   }
   if (previewRecord && councilRequest.settings?.maxCost !== undefined) {
-    const remaining = councilRequest.settings.maxCost - previewRecord.preview.usage.totalCost;
+    const remaining = councilRequest.settings.maxCost - (previewRecord.preview.usage.totalCost ?? Infinity);
     if (remaining <= 0) {
       res.status(400).json({ error: { code: 'BUDGET_EXCEEDED', message: 'Role preview already used the request budget. Increase the budget or use manual roles.' } });
       return;

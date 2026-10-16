@@ -1,4 +1,6 @@
 import { generateText, gateway, Output } from "ai";
+import { AIProviderError } from "../../core/errors.js";
+import { createCompatibleModel } from "../shared/OpenAICompatibleProvider.js";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -12,7 +14,7 @@ import type { ModelConfig } from "../../../../shared/types.js";
 function requiredKey(name: string): string {
   const value = process.env[name];
   if (!value)
-    throw new Error(`${name} is required for the selected model provider`);
+    throw new AIProviderError("AUTHENTICATION");
   return value;
 }
 
@@ -29,17 +31,17 @@ function resolveModel(config: ModelConfig) {
       }
       return gateway(config.model);
     case "compatible":
-      return createOpenAI({
+      return createCompatibleModel({
+        providerId: config.provider,
         apiKey: requiredKey("COMPATIBLE_API_KEY"),
         baseURL: requiredKey("COMPATIBLE_BASE_URL"),
-      }).chat(config.model);
+      }, config.model);
     case "meta":
-      return createOpenAI({
+      return createCompatibleModel({
+        providerId: config.provider,
         apiKey: requiredKey("META_API_KEY"),
         baseURL: "https://api.meta.ai/v1",
-      }).chat(config.model);
-    case "muse":
-      throw new Error("Muse must use its SDK provider");
+      }, config.model);
     case "openai":
       return createOpenAI({ apiKey: requiredKey("OPENAI_API_KEY") })(
         config.model,

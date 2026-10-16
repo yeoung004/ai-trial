@@ -1,0 +1,65 @@
+import type { ModelConfig } from "../../../../shared/types.js";
+
+// Fallback identifiers are not availability guarantees. Prices are editable metadata.
+export const fallbackModels: ModelConfig[] = [
+  {
+    id: "gateway:gpt-5.4-nano",
+    provider: "gateway",
+    model: "openai/gpt-5.4-nano",
+    displayName: "GPT-5.4 Nano (Gateway)",
+    tier: "economy",
+    inputCostPerMillion: 0.2,
+    outputCostPerMillion: 1.25,
+    enabled: true,
+  },
+  {
+    id: "gateway:gpt-5.4-mini",
+    provider: "gateway",
+    model: "openai/gpt-5.4-mini",
+    displayName: "GPT-5.4 Mini (Gateway)",
+    tier: "standard",
+    inputCostPerMillion: 0.75,
+    outputCostPerMillion: 4.5,
+    enabled: true,
+  },
+  {
+    id: "gateway:gpt-5.6-sol",
+    provider: "gateway",
+    model: "openai/gpt-5.6-sol",
+    displayName: "GPT-5.6 Sol (Gateway)",
+    tier: "judge",
+    inputCostPerMillion: 4,
+    outputCostPerMillion: 20,
+    enabled: true,
+  },
+  {
+    id: "gateway:claude-sonnet-5.5",
+    provider: "gateway",
+    model: "anthropic/claude-sonnet-5.5",
+    displayName: "Claude Sonnet 5.5 (Gateway)",
+    tier: "standard",
+    inputCostPerMillion: 2,
+    outputCostPerMillion: 10,
+    enabled: true,
+  },
+  {
+    id: "gateway:claude-opus-5.5",
+    provider: "gateway",
+    model: "anthropic/claude-opus-5.5",
+    displayName: "Claude Opus 5.5 (Gateway)",
+    tier: "judge",
+    inputCostPerMillion: 4,
+    outputCostPerMillion: 20,
+    enabled: true,
+  },
+  {
+    id: "gateway:gemini-3.7-flash",
+    provider: "gateway",
+    model: "google/gemini-3.7-flash",
+    displayName: "Gemini 3.7 Flash (Gateway)",
+    tier: "economy",
+    inputCostPerMillion: 0.75,
+    outputCostPerMillion: 3.75,
+    enabled: true,
+  }
+];

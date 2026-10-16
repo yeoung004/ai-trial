@@ -2,7 +2,6 @@ import type {
   CandidateWeights,
   ConsensusSettings,
   DebateExpertRun,
-  ModelConfig,
   PeerEvaluation,
   CandidateScore,
 } from "../../shared/types.js";
@@ -156,8 +155,4 @@ export function rankCandidates(
     };
   });
   return scores.sort((a, b) => b.score - a.score || a.candidateId.localeCompare(b.candidateId));
-}
-
-export function estimatedCost(model: ModelConfig, estimatedInputTokens: number, outputTokens: number): number {
-  return ((model.inputCostPerMillion ?? 0) * estimatedInputTokens + (model.outputCostPerMillion ?? 0) * outputTokens) / 1_000_000;
 }
