@@ -6,7 +6,7 @@ import { createSession } from "./MuseSessionFactory.js";
 import { requireSubscription } from "./MuseUsageReader.js";
 import { readModels } from "./MuseModelCatalog.js";
 import { finalText, parseJSON } from "./MuseEventMapper.js";
-import { MuseError } from "./MuseErrors.js";
+import { MuseError, generationError } from "./MuseErrors.js";
 export async function generateMuse<T>(
   request: StructuredCall<T>,
 ): Promise<StructuredResponse<T>> {
@@ -66,9 +66,10 @@ export async function generateMuse<T>(
                   "MUSE_ALLOWANCE_UNAVAILABLE",
                   "Muse allowance unavailable.",
                 );
-              throw new MuseError(
-                "MUSE_GENERATION_FAILED",
-                "Muse did not complete its reasoning turn.",
+              throw generationError(
+                outcome.kind === "completed"
+                  ? outcome.params.error?.message ?? outcome.params.reason
+                  : undefined,
               );
             }
             const usage = outcome.params.usage;
