@@ -15,6 +15,7 @@
     "@ai-sdk/gateway": "^3.0.0",
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
+    "@muse-code/sdk": "1.4.9",
     "ai": "^7.0.0",
     "express": "^5.1.0",
     "lucide-react": "^0.468.0",

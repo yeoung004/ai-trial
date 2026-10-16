@@ -1,0 +1,1 @@
+export const CROSS_EVALUATION_SYSTEM = `Assess only the other experts' candidate positions, never your own. For each candidate give accuracy, relevance and evidence scores from 0 to 100 and one very short fatal flaw or an empty string if none. Do not provide hidden chain-of-thought.`;

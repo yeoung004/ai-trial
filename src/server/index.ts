@@ -1,3 +1,4 @@
+import { providerManager } from "../lib/ai/providers/index.js";
 import express from 'express';
 import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -102,9 +103,17 @@ function summary(record: Record<string, unknown>) {
 
 async function parsedRequest(body: unknown): Promise<CouncilRequest> {
   const parsed = requestSchema.parse(body);
-  const registry = await getModels();
+  const registry = await availableModels();
   const ids = new Set(registry.filter((model: ModelConfig) => model.enabled).map((model: ModelConfig) => model.id));
   const selection = parsed.models;
+  const selectedIds = [selection.judgeModelId, selection.defaultExpertModelId, ...(parsed.roleMode === 'MANUAL' ? [] : [selection.roleGeneratorModelId || selection.defaultExpertModelId]), ...Object.values(selection.expertModelOverrides ?? {}), ...(parsed.roles ?? []).map(role=>role.modelOverride).filter(Boolean), ...(parsed.approvedRoles ?? []).map(role=>role.modelOverride).filter(Boolean)];
+  for (const id of selectedIds) {
+    const model = registry.find(model => model.id === id && model.enabled);
+    if (!model) throw new ApiError('MODEL_UNAVAILABLE', id === selection.judgeModelId ? 'Judge model unavailable.' : `Selected model unavailable: ${id}`);
+    const provider = await providerManager.snapshot(model.provider);
+    if (provider.health.status !== 'connected') throw new ApiError('PROVIDER_UNAVAILABLE', provider.health.message || `${provider.displayName} is unavailable.`);
+  }
+
   for (const id of [selection.defaultExpertModelId, selection.judgeModelId, ...Object.values(selection.expertModelOverrides ?? {})]) {
     if (!ids.has(id)) throw new ApiError('MODEL_UNAVAILABLE', `Selected model is unavailable: ${id}`);
   }
@@ -117,19 +126,28 @@ async function parsedRequest(body: unknown): Promise<CouncilRequest> {
   return { ...parsed, models: { ...selection, registry } } as CouncilRequest;
 }
 
+async function availableModels(refresh = false): Promise<ModelConfig[]> {
+  const [snapshots, saved] = await Promise.all([providerManager.snapshots(refresh), getModels()]);
+  return snapshots.flatMap(provider => {
+    const rows = provider.models.length ? provider.models : saved.filter(m => m.provider === provider.id).slice(0, 2).map(m => ({ id: m.id, model: m.model, displayName: m.displayName, available: true, contextWindow: m.maxContextTokens }));
+    return rows.map(row => {
+      const prior = saved.find(m => m.provider === provider.id && m.model === row.model);
+      return { ...prior, id: row.id, provider: provider.id as ModelConfig['provider'], model: row.model, displayName: row.displayName, enabled: row.available, tier: prior?.tier ?? 'standard', maxContextTokens: row.contextWindow };
+    });
+  });
+}
+app.get('/api/providers', async (req, res) => {
+  try {
+    const refresh = req.query.refresh === 'true';
+    const providers = await providerManager.snapshots(refresh);
+    const models = await availableModels();
+    res.json({ providers, models });
+  } catch (error) { res.status(500).json({ error: safeError(error) }); }
+});
 app.get('/api/bootstrap', async (_req, res) => {
   try {
-    const [models, records] = await Promise.all([getModels(), listSessions()]);
-    res.json({
-      models,
-      history: records.map((record) => summary(record as Record<string, unknown>)),
-      providerKeys: {
-        gateway: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN),
-        openai: Boolean(process.env.OPENAI_API_KEY),
-        anthropic: Boolean(process.env.ANTHROPIC_API_KEY),
-        google: Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY),
-      },
-    });
+    const [models, records, providers] = await Promise.all([availableModels(), listSessions(), providerManager.snapshots()]);
+    res.json({ models, providers, history: records.map(record => summary(record as Record<string, unknown>)), providerKeys: Object.fromEntries(providers.map(p => [p.id, p.health.status === 'connected'])) });
   } catch (error) { res.status(500).json({ error: safeError(error) }); }
 });
 

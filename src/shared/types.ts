@@ -2,7 +2,7 @@
 export type CouncilMode = "YES_NO" | "DEBATE";
 export type RoleMode = "AUTO" | "MANUAL" | "HYBRID";
 export type AdaptiveCompute = "LOW" | "BALANCED" | "HIGH";
-export type ModelProvider = "gateway" | "openai" | "anthropic" | "google";
+export type ModelProvider = "muse" | "compatible" | "meta" | "gateway" | "openai" | "anthropic" | "google";
 export type ModelTier = "economy" | "standard" | "premium" | "judge";
 export type EvidenceStatus = "KNOWN" | "INFERRED" | "UNCERTAIN";
 
@@ -100,7 +100,12 @@ export type CouncilStage =
   | "COMPLETE"
   | "FAILED";
 
+export type CouncilEventType = "ROLE_GENERATION_STARTED" | "ROLES_CREATED" | "EXPERT_STARTED" | "EXPERT_COMPLETED" | "EXPERT_CHANGED_POSITION" | "DEBATE_ROUND_STARTED" | "CONSENSUS_REACHED" | "JUDGE_STARTED" | "JUDGE_COMPLETED";
 export interface StageEvent {
+  type?: CouncilEventType;
+  expertId?: string;
+  summary?: string;
+  position?: string;
   sessionId: string;
   stage: CouncilStage;
   at: string;
@@ -131,6 +136,7 @@ export interface ModelCallUsage {
   estimatedCost: number;
   costKnown: boolean;
   latencyMs: number;
+  tokensKnown?: boolean;
   error?: string;
 }
 

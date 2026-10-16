@@ -121,7 +121,7 @@ export const DEFAULT_MODELS: ModelConfig[] = [
   },
 ];
 
-const PROVIDERS = new Set(["gateway", "openai", "anthropic", "google"]);
+const PROVIDERS = new Set(["muse", "compatible", "meta", "gateway", "openai", "anthropic", "google"]);
 const TIERS = new Set(["economy", "standard", "premium", "judge"]);
 
 function requiredString(value: unknown, field: string): string {

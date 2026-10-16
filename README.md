@@ -1,51 +1,68 @@
-# Council
+# AI Court
 
-A local, personal-use AI decision council. Five independent specialists handle **YES / NO** questions; three handle **Debate** questions. A selected **Final Judge** always makes the final call. The orchestration code controls rounds, retries, budgets, and stopping rules.
+A private, local robot courtroom. Five independent experts answer YES / NO questions; three debate open questions for at most three rounds. A separately configured Judge always decides the outcome.
 
 ## Start
 
 Requires Node.js 20.12 or newer.
 
-```bash
+```sh
 npm install
 cp .env.example .env
 npm run dev
 ```
 
-Set at least one provider key in `.env`, then open http://127.0.0.1:5173. Supported keys are `AI_GATEWAY_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, and `GOOGLE_GENERATIVE_AI_API_KEY`. A Vercel `VERCEL_OIDC_TOKEN` also works for Gateway. Keys stay in the server process; the browser receives only booleans showing which providers are configured.
+Open http://127.0.0.1:5173. Choose models in **Settings → AI** (`/settings/ai`). The courtroom contains only question controls. Settings persist in this browser; completed councils and their usage persist in the ignored `data/` directory. `COUNCIL_DATA_DIR` changes that directory.
 
-The app selects available models from its editable registry. The initial registry includes models from several providers. Model availability and pricing can change, so review the entries before using them. Configure the Role Generator, Default Expert, and Final Judge in the UI; individual experts can override the default. The Judge is required for every run.
+### Muse subscription (initial provider)
 
-For a local production build:
+Install and browser-sign-in to the local Muse Code CLI. The official SDK is pinned to **1.4.9**; use a matching CLI version. Set `MUSE_BIN` in the server environment if the binary is not on PATH. No API key is required for this provider.
 
-```bash
-npm run build
-npm start
-```
+Each inference gets its own SDK-owned host and fresh session in an empty temporary workspace. Hosts use the empty tool preset and deny unmatched approvals; configurations containing hooks, MCP servers, or plugins are refused. The host is closed after success, failure, cancellation, or timeout. The adapter never invokes `muse exec`.
 
-The API defaults to `127.0.0.1:3001`; the dev UI runs on `127.0.0.1:5173`. Local data is written under the ignored `data/` directory. Set `COUNCIL_DATA_DIR` to use another directory. Do not expose the API on a public interface without adding authentication and request limits, since calls spend provider credits.
+The subscription adapter verifies the effective browser-login credential lane through experimental `account/read`, then requires subscription allowance from `usage/read`. A stored API key, unknown credential lane, unsupported account endpoint, missing usage, or exhausted allowance stops execution. It never switches to a paid provider. Model discovery uses the session's `model/list`, restricted to the Meta route, rather than the public API catalog.
 
-## How it runs
+SDK 1.4.9 does not expose a hard output-token cap on `sendUserTurn`. Muse receives the concise schema and a requested output length; validated field limits and a three-minute turn deadline bound the workflow. API providers receive hard output-token limits. Missing token measurements are stored with `tokensKnown: false`, and unknown monetary pricing is not treated as a known zero.
 
-- **YES / NO:** validates a binary question, assigns five roles, calls the experts concurrently, then calls the Judge once. Four valid experts are enough if one fails after one retry.
-- **Debate:** starts three experts independently, checks consensus in code, runs only useful targeted rebuttals, and stops after at most three rounds. If disagreement remains, experts score the other positions before the Judge decides. Two valid experts are enough in degraded mode.
-- **Roles:** AUTO generates all roles, MANUAL preserves all user roles, and HYBRID generates only missing roles. A previewed lineup can be accepted without another role-generation call.
-- **Cost controls:** output caps, optional maximum cost, and adaptive compute are configurable. If a maximum cost is set, every selected model needs pricing metadata; otherwise the server cannot enforce the cap. Cost is estimated from reported tokens and configured prices. The result indicates when the estimate is incomplete.
-- **History:** completed runs, concise expert outputs, usage, and final judgments are saved as local JSON. Provider keys are never saved.
+Sources: [official SDK](https://github.com/meta-models/muse-code-sdk), [session model discovery](https://meta-models.github.io/muse-code-sdk/next/cookbook/list-models-and-switch-mid-session/), [credential state](https://meta-models.github.io/muse-code-sdk/next/generated/msp/types/accountstatekind/).
+
+### Optional paid APIs
+
+Configure only the providers you intend to select:
+
+| Provider | Server environment |
+| --- | --- |
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Google Gemini | `GOOGLE_GENERATIVE_AI_API_KEY` |
+| Meta Model API | `META_API_KEY` |
+| OpenAI-compatible API | `COMPATIBLE_BASE_URL`, `COMPATIBLE_API_KEY` |
+| Vercel AI Gateway | `AI_GATEWAY_API_KEY` |
+
+Credentials never enter browser settings. Role Generator, experts, Judge, and individual expert overrides may use different providers. A stage never silently changes its configured provider or model. The primary provider is shown first in model pickers; existing stage choices remain explicit.
+
+Model discovery is cached for 15 minutes, connection status for one minute. **Refresh models** bypasses caches. Failed refreshes retain the previous catalog; cold failures use a small subset of the saved model registry, labeled fallback. Unknown Muse model names are never invented. Non-text models are hidden unless **Show all models** is selected.
+
+## Architecture
+
+- `src/lib/ai/core/`: provider contract, normalized descriptors, registry, cache manager.
+- `src/lib/ai/providers/`: all provider SDKs, credentials, endpoints, Muse host/session/catalog/usage adapters.
+- `src/server/engine/`: independent role generation, YES/NO, debate rounds, cross evaluation, Judge, execution, and budget modules.
+- `src/server/engine/prompts/`: stage-specific prompts.
+- `src/client/hooks/`: council, provider, settings, and navigation state.
+- `src/client/bot/`: original local SVG body, face, outfits, hats, and props.
+- `src/client/courtroom/`: event-driven visual state and scene composition.
+- `src/client/settings/`: model choices, connection status, usage, appearance, and spending controls.
+
+Round 1 experts never receive other expert outputs. Later rounds use compact structured positions. Backend consensus and repetition rules decide whether another round is useful. Cost controls reserve the mandatory Judge before optional rounds. A cost cap requires pricing metadata for every selected model; unknown prices fail validation. The saved registry can supply price overrides through `PUT /api/models`.
+
+The local API binds to `127.0.0.1:3001`. For a production build, run `npm run build` then `npm start`. This single-user server has no authentication and is intended to remain local.
 
 ## Verification
 
-```bash
+```sh
 npm test
 npm run build
 ```
 
-The tests use a mock model adapter for the required orchestration scenarios: exact expert counts, role modes, early consensus, deadlock stopping, cross evaluation, retries, Judge failure, budgets, model selection, usage, cancellation, and binary reframing.
-
-An optional live evaluation harness compares a single premium model with the council on a small fixed set of questions and writes a report to `data/evals/`:
-
-```bash
-npx tsx src/server/evals/run.ts --judge gateway:gpt-5.6-sol --expert gateway:gpt-5.4-mini --role gateway:gpt-5.4-nano
-```
-
-This command makes paid model calls. Review its questions and model selections before running it. Use the report's empty human review fields to assess usefulness and correctness; automated answer matching alone does not establish answer quality.
+Tests cover council quorums, role modes, early termination, Judge failure, retries, cancellation, budgets, persistence, provider cache behavior, no paid failover, subscription billing guards, catalog route filtering, and character event mapping. Provider tests use deterministic mocks; they do not establish live credential availability.
