@@ -95,6 +95,7 @@ function summary(record: Record<string, unknown>) {
     decision: ((result.judge ?? {}) as Record<string, unknown>).decision,
     conclusion: ((result.judge ?? {}) as Record<string, unknown>).conclusion,
     cost: usage.totalCost ?? usage.estimatedCost ?? 0,
+    costComplete: usage.costComplete !== false,
     tokens: usage.totalTokens ?? 0,
   };
 }

@@ -50,6 +50,10 @@ const DEBATE_REBUTTAL_SYSTEM = `You are a specialist in a structured debate. Add
 const CROSS_EVALUATION_SYSTEM = `Assess only the other experts' candidate positions, never your own. For each candidate give accuracy, relevance and evidence scores from 0 to 100 and one very short fatal flaw or an empty string if none. Do not provide hidden chain-of-thought.`;
 const DEBATE_JUDGE_SYSTEM = `You are the Final Judge of a structured expert debate. Review expert relevance, evidence quality, unresolved objections, confidence calibration, apparent consensus and overlooked domains. Candidate ranking is advisory only. Give a concise final conclusion, strongest reason, strongest counterargument, why it wins and practical recommendation. Do not provide hidden chain-of-thought.`;
 
+function isAuthenticationFailure(error: unknown): boolean {
+  return error instanceof Error && /api.?key|authentication|credential|unauthorized|forbidden|\b401\b|\b403\b/i.test(error.message);
+}
+
 const inputEstimate: Record<CallStage, number> = {
   role_generation: 350,
   yes_no_expert: 500,
@@ -77,8 +81,8 @@ class Execution {
     if (this.deps.signal?.aborted) throw new CouncilError("CANCELLED", "Council execution was cancelled.");
   }
 
-  emit(stage: CouncilStage, message?: string, round?: number) {
-    const event: StageEvent = { sessionId: this.sessionId, stage, at: new Date().toISOString(), ...(message ? { message } : {}), ...(round ? { round } : {}) };
+  emit(stage: CouncilStage, message?: string, round?: number, roles?: ExpertRole[]) {
+    const event: StageEvent = { sessionId: this.sessionId, stage, at: new Date().toISOString(), ...(message ? { message } : {}), ...(round ? { round } : {}), ...(roles ? { roles } : {}) };
     try { this.deps.onStage?.(event); } catch { /* UI callbacks cannot alter council execution. */ }
     this.log({ sessionId: this.sessionId, stage });
   }
@@ -236,9 +240,12 @@ class Execution {
           if (new Set(names).size !== names.length) throw new Error("Duplicate generated roles");
         },
       });
-    } catch {
+    } catch (error) {
       this.throwIfAborted();
-      throw new CouncilError("ROLE_GENERATION_FAILED", "The Role Generator could not produce valid distinct expert roles.");
+      const message = isAuthenticationFailure(error)
+        ? "Role Generator authentication failed. Check the selected provider credentials."
+        : "The Role Generator failed after one retry. Check the selected model and provider configuration.";
+      throw new CouncilError("ROLE_GENERATION_FAILED", message, { modelId: model.id, provider: model.provider });
     }
     const queue = [...generated.roles];
     const combined: ExpertRole[] = [];
@@ -250,7 +257,9 @@ class Execution {
         combined.push({ id: `expert-${index + 1}`, title: next.role, domain: next.domain, reason: next.reason, primaryQuestion: next.primary_question });
       }
     }
-    return this.validateRoles(combined, count);
+    const validated = this.validateRoles(combined, count);
+    this.emit("GENERATING_ROLES", "The specialists have taken their seats.", undefined, validated);
+    return validated;
   }
 
   expertModel(role: ExpertRole, index: number): ModelConfig {
@@ -318,9 +327,13 @@ class Execution {
     this.emit("JUDGING");
     try {
       return await this.call({ model: this.model(this.request.models.judgeModelId, "judge"), stage: "judge", system, prompt, schema, maxOutputTokens: this.budget("judge") });
-    } catch {
+    } catch (error) {
       this.throwIfAborted();
-      throw new CouncilError("JUDGE_FAILED", "The Final Judge failed after one retry. No final answer was produced.");
+      const reason = isAuthenticationFailure(error)
+        ? "Final Judge authentication failed. Check the selected provider credentials."
+        : "The Final Judge failed after one retry. No final answer was produced.";
+      const model = this.request.models.registry.find((item) => item.id === this.request.models.judgeModelId);
+      throw new CouncilError("JUDGE_FAILED", reason, model ? { modelId: model.id, provider: model.provider } : undefined);
     }
   }
 }

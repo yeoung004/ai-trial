@@ -6,6 +6,7 @@ import {
   Settings2, ShieldCheck, SlidersHorizontal, Sparkles, Square, Trash2, Users2,
   WandSparkles, X, Zap,
 } from 'lucide-react';
+import Courtroom from './courtroom/Courtroom';
 import { api, type AdaptiveCompute, type CouncilMode, type CouncilRequest, type CouncilRole, type ExecutionSnapshot, type HistoryEntry, type ModelConfig, type ProviderKeys, type RoleMode, type TokenBudgets } from './api';
 
 type View = 'compose' | 'history' | 'models';
@@ -89,7 +90,7 @@ function usageData(raw: LooseRecord): { cost: number; costComplete: boolean; tok
   const latency = number(get(raw, 'totalLatency', 'totalLatencyMs'), number(get(usage, 'totalLatency', 'totalLatencyMs', 'latencyMs')));
   return { cost, costComplete: usage.costComplete !== false, tokens, calls, latency, records: allRecords };
 }
-function historyFields(raw: HistoryEntry): { id: string; question: string; mode: CouncilMode; createdAt: unknown; cost: number; status: string } {
+function historyFields(raw: HistoryEntry): { id: string; question: string; mode: CouncilMode; createdAt: unknown; cost: number; costComplete: boolean; status: string } {
   const item = object(raw);
   const session = object(item.session);
   return {
@@ -98,6 +99,7 @@ function historyFields(raw: HistoryEntry): { id: string; question: string; mode:
     mode: modeFrom(get(item, 'mode') ?? session.mode),
     createdAt: get(item, 'createdAt') ?? session.createdAt,
     cost: number(get(item, 'cost', 'totalCost'), number(session.totalCost)),
+    costComplete: item.costComplete !== false,
     status: string(get(item, 'status'), 'complete'),
   };
 }
@@ -154,6 +156,7 @@ export default function App() {
   const [executionWarning, setExecutionWarning] = useState('');
   const [selectedResult, setSelectedResult] = useState<unknown>(null);
   const [selectedHistoryId, setSelectedHistoryId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [toast, setToast] = useState('');
   const pollRef = useRef<number | undefined>(undefined);
@@ -162,6 +165,8 @@ export default function App() {
   const selectedJudge = models.find(model => model.id === judgeModelId);
   const expertCount = mode ? ROLE_COUNT[mode] : 0;
   const hasActiveExecution = execution && ['running', 'pending', 'queued'].includes(execution.status.toLowerCase());
+  const finalJudge = selectedResult ? judgeData(resultData(selectedResult)) : null;
+  const visibleRoles = selectedResult ? list(resultData(selectedResult).roles).map(role => normalizedRole(role as CouncilRole)) : roles;
 
   const reloadBootstrap = useCallback(async () => {
     try {
@@ -197,6 +202,8 @@ export default function App() {
         const next = await api.execution(execution.id);
         if (cancelled) return;
         setExecution(next);
+        const roleEvent = list(next.events).map(object).reverse().find(event => Array.isArray(event.roles));
+        if (roleEvent) setRoles(list(roleEvent.roles).map(role => normalizedRole(role as CouncilRole)));
         if (next.status.toLowerCase() === 'complete') {
           setSelectedResult(next.result);
           setExecutionWarning(next.warning ? errorText(next.warning) : '');
@@ -322,8 +329,14 @@ export default function App() {
     finally { setActionBusy(false); }
   }
   async function openHistory(id: string) {
-    setHistoryLoading(true); setFormError(''); setView('history'); setSelectedHistoryId(id);
-    try { setSelectedResult(await api.history(id)); }
+    setHistoryLoading(true); setFormError(''); setSelectedHistoryId(id);
+    try {
+      const record = object(await api.history(id));
+      setSelectedResult(record);
+      setQuestion(string(record.question, string(object(record.result).question)));
+      setMode(modeFrom(record.mode ?? object(record.result).mode));
+      setHistoryOpen(false); setView('compose');
+    }
     catch (error) { setFormError(errorText(error)); setSelectedResult(null); }
     finally { setHistoryLoading(false); }
   }
@@ -346,7 +359,8 @@ export default function App() {
     const expertCosts = expertModels.map(model => estimateCall(model, 500, expertTokens));
     const judgeCost = estimateCall(judgeModel, 1400, tokenBudgets.judge);
     if (roleCost === null || expertCosts.some(cost => cost === null) || judgeCost === null) return null;
-    const firstRound = roleCost + expertCosts.reduce((sum, cost) => sum + (cost ?? 0), 0) + judgeCost;
+    const knownExpertCosts = expertCosts.filter((cost): cost is number => cost !== null);
+    const firstRound = roleCost + knownExpertCosts.reduce((sum, cost) => sum + cost, 0) + judgeCost;
     const extra = mode === 'DEBATE' ? expertModels.reduce((sum, model) => sum + (maxDebateRounds - 1) * (estimateCall(model, 800, tokenBudgets.debateRebuttal) ?? 0) + (estimateCall(model, 650, tokenBudgets.crossEvaluation) ?? 0), 0) : 0;
     return { low: firstRound, high: firstRound + extra };
   }, [mode, models, roleGeneratorModelId, defaultExpertModelId, judgeModelId, roleMode, previewReady, previewCost, tokenBudgets, maxDebateRounds, roles, expertOverrides]);
@@ -370,55 +384,34 @@ export default function App() {
       <header className="topbar"><button className="mobile-menu icon-button" onClick={() => setMobileNav(!mobileNav)} aria-label="Toggle navigation"><Menu size={20} /></button><div className="breadcrumbs">Workspace <ChevronRight size={14} /> <strong>{view === 'compose' ? 'New council' : view === 'history' ? 'History' : 'Model registry'}</strong></div><div className="topbar-actions"><span className="top-status"><span className="signal" /> System ready</span><button className="avatar" title="Personal workspace">CY</button></div></header>
 
       {bootError && <div className="global-error"><CircleHelp size={17} /> {bootError} <button onClick={() => void reloadBootstrap()}>Retry</button></div>}
-      {view === 'compose' && <main className="content-grid">
-        <div className="content-primary">
-          {selectedResult ? <ResultView raw={selectedResult} mode={mode ?? undefined} warning={executionWarning} onNew={newCouncil} onHistory={() => setView('history')} /> : <>
-            <div className="page-intro"><div className="intro-kicker"><span className="spark-dot" /> INTELLIGENT DELIBERATION <span className="intro-line" /></div><h1>Ask the right minds.<br /><em>Get a better answer.</em></h1><p>Bring distinct expert perspectives together, then let a capable Judge make the final call.</p></div>
-            <section className="panel compose-panel"><SectionHeading eyebrow="01 / THE BRIEF" title="What are you deciding?" description="Give the council a specific question and any context it needs." />
-              <label className="visually-hidden" htmlFor="question">Question</label><textarea id="question" className="question-input" value={question} onChange={event => { setQuestion(event.target.value); setPreviewReady(false); setPreviewId(null); setPreviewCost(0); if (roleMode === 'AUTO') setRoles([]); }} placeholder="e.g. Should we build a native mobile app before improving our web experience?" rows={4} maxLength={5000} disabled={Boolean(hasActiveExecution)} />
-              <div className="input-footer"><span><ShieldCheck size={14} /> Private to this workspace</span><span>{question.length} / 5,000</span></div>
-            </section>
+      {view === 'compose' && <>
+        <>
+          <Courtroom question={question} onQuestionChange={value => { setQuestion(value); setPreviewReady(false); setPreviewId(null); setPreviewCost(0); if (roleMode === 'AUTO') setRoles([]); }} mode={mode} onModeChange={switchMode} roles={visibleRoles} roleCount={expertCount} busy={actionBusy} running={Boolean(hasActiveExecution)} execution={execution} error={formError} onRun={() => void startCouncil()} onSettings={() => setAdvancedOpen(value => !value)} onHistory={() => setHistoryOpen(true)} onNew={newCouncil} ruling={finalJudge ? { decision: string(finalJudge.decision), conclusion: string(get(finalJudge, 'summary', 'conclusion')), rationale: string(get(finalJudge, 'main_reason', 'mainReason')), recommendation: string(finalJudge.recommendation) } : undefined} />
+          {selectedResult ? <details className="court-tools"><summary><BarChart3 size={17}/> Full ruling details <span>expert notes · usage · cost</span></summary><div className="court-tools-content"><ResultView raw={selectedResult} mode={mode ?? undefined} warning={executionWarning} onNew={newCouncil} onHistory={() => setHistoryOpen(true)} /></div></details> : <details className="court-tools" open={advancedOpen} onToggle={event => setAdvancedOpen(event.currentTarget.open)}>
+            <summary><Settings2 size={17}/> Council setup <span>roles · models · spending</span></summary>
+            <div className="court-tools-content">
+              <section className="panel roles-panel">
+                <SectionHeading eyebrow="THE EXPERTS" title="Build your council" description={mode ? `${expertCount} seats in this ${mode === 'DEBATE' ? 'debate' : 'ruling'}.` : 'Choose a mode above to set the council size.'} action={previewReady ? <span className="ready-badge"><CheckCircle2 size={14} /> Lineup ready</span> : undefined} />
+                <div className="segmented" role="group" aria-label="Role assignment mode"><button className={roleMode === 'AUTO' ? 'active' : ''} onClick={() => switchRoleMode('AUTO')} disabled={Boolean(hasActiveExecution)}><WandSparkles size={15} /> Auto</button><button className={roleMode === 'MANUAL' ? 'active' : ''} onClick={() => switchRoleMode('MANUAL')} disabled={Boolean(hasActiveExecution)}><Users2 size={15} /> Manual</button><button className={roleMode === 'HYBRID' ? 'active' : ''} onClick={() => switchRoleMode('HYBRID')} disabled={Boolean(hasActiveExecution)}><LockKeyhole size={15} /> Hybrid</button></div>
+                {roles.length > 0 && <div className="role-list">{roles.map((role, index) => <RoleEditor key={index} index={index} role={role} mode={roleMode} models={enabledModels} modelValue={expertOverrides[index] || role.modelOverride || ''} onModelChange={value => setExpertOverrides(current => ({ ...current, [index]: value }))} onChange={changes => editRole(index, changes)} onRemove={() => { setRoles(current => current.filter((_, position) => position !== index)); setPreviewReady(false); }} onRegenerate={previewReady && roleMode !== 'MANUAL' ? () => void regenerateRole(index) : undefined} disabled={Boolean(hasActiveExecution) || previewing} />)}</div>}
+                <div className="role-actions">{roleMode !== 'AUTO' && !previewReady && mode && roles.length < expertCount && <button className="text-button" onClick={() => setRoles(current => [...current, { title: '', instructions: '', locked: true }])}><Plus size={16} /> Add specialist <span>{roles.length}/{expertCount}</span></button>}{roleMode !== 'MANUAL' && <button className="text-button muted" onClick={() => void previewRoles()} disabled={!mode || previewing || Boolean(hasActiveExecution)}><Eye size={16} /> {previewing ? 'Assembling…' : previewReady ? 'Regenerate lineup' : 'Preview roles'}</button>}</div>
+              </section>
+              <section className="panel model-panel"><SectionHeading eyebrow="THE CAST" title="Choose your models" action={<button className="plain-link" onClick={() => setView('models')}>Model registry <ArrowRight size={15} /></button>} />
+                <div className="model-row"><div className="model-row-icon"><WandSparkles size={18} /></div><div className="model-row-copy"><strong>Role Generator</strong><span>Builds the expert lineup</span></div><ModelSelect value={roleGeneratorModelId} onChange={setRoleGeneratorModelId} models={models} placeholder="Select role model" /></div>
+                <div className="model-row"><div className="model-row-icon"><Users2 size={18} /></div><div className="model-row-copy"><strong>Default Expert</strong><span>Independent specialist analysis</span></div><ModelSelect value={defaultExpertModelId} onChange={setDefaultExpertModelId} models={models} placeholder="Select expert model" /></div>
+                <div className="model-row judge-row"><div className="model-row-icon"><ShieldCheck size={18} /></div><div className="model-row-copy"><strong>Final Judge</strong><span>The strongest seat</span></div><ModelSelect value={judgeModelId} onChange={setJudgeModelId} models={models} placeholder="Select Judge model" /></div>
+                {!Object.values(providerKeys).some(Boolean) && !bootLoading && <div className="inline-hint warning"><CircleHelp size={15} /> Add a provider API key to the server environment before running.</div>}
+              </section>
+              <section className={`panel advanced-panel ${advancedOpen ? 'open' : ''}`}><div className="section-heading"><div><span className="eyebrow">HOUSE RULES</span><h2>Spending and deliberation</h2></div></div><AdvancedSettings mode={mode} count={expertCount} adaptiveCompute={adaptiveCompute} setAdaptiveCompute={setAdaptiveCompute} maxCostInput={maxCostInput} setMaxCostInput={setMaxCostInput} maxDebateRounds={maxDebateRounds} setMaxDebateRounds={setMaxDebateRounds} tokenBudgets={tokenBudgets} setTokenBudgets={setTokenBudgets} strongConfidence={strongConfidence} setStrongConfidence={setStrongConfidence} weakDissent={weakDissent} setWeakDissent={setWeakDissent} runImmediately={runImmediately} setRunImmediately={setRunImmediately} overrides={expertOverrides} setOverrides={setExpertOverrides} models={enabledModels} /></section>
+            </div>
+          </details>}
+        </>
+      </>}
 
-            <section className="panel mode-panel"><SectionHeading eyebrow="02 / DECISION FORMAT" title="Choose a council mode" description="The format determines how your experts deliberate." />
-              <div className="mode-grid"><button className={`mode-card ${mode === 'YES_NO' ? 'selected' : ''}`} onClick={() => switchMode('YES_NO')} disabled={Boolean(hasActiveExecution)}><span className="mode-icon binary">Y<span>/</span>N</span><span className="mode-card-copy"><strong>YES / NO</strong><small>A clear decision on a binary proposition. Five independent experts, one final verdict.</small></span><span className="radio-mark">{mode === 'YES_NO' && <Check size={13} />}</span></button><button className={`mode-card ${mode === 'DEBATE' ? 'selected' : ''}`} onClick={() => switchMode('DEBATE')} disabled={Boolean(hasActiveExecution)}><span className="mode-icon"><GitBranch size={22} /></span><span className="mode-card-copy"><strong>DEBATE</strong><small>Test competing strategies with three specialists and targeted rebuttals.</small></span><span className="radio-mark">{mode === 'DEBATE' && <Check size={13} />}</span></button></div>
-              {!mode && <div className="inline-hint"><ArrowRight size={14} /> Select a mode before submitting your question.</div>}
-            </section>
-
-            <section className="panel roles-panel"><SectionHeading eyebrow="03 / EXPERT PERSPECTIVES" title="Assemble your council" description={mode ? `${expertCount} distinct experts will analyze the question.` : 'Choose a mode to set the council size.'} action={previewReady ? <span className="ready-badge"><CheckCircle2 size={14} /> Lineup ready</span> : undefined} />
-              <div className="segmented" role="group" aria-label="Role assignment mode"><button className={roleMode === 'AUTO' ? 'active' : ''} onClick={() => switchRoleMode('AUTO')} disabled={Boolean(hasActiveExecution)}><WandSparkles size={15} /> Auto</button><button className={roleMode === 'MANUAL' ? 'active' : ''} onClick={() => switchRoleMode('MANUAL')} disabled={Boolean(hasActiveExecution)}><Users2 size={15} /> Manual</button><button className={roleMode === 'HYBRID' ? 'active' : ''} onClick={() => switchRoleMode('HYBRID')} disabled={Boolean(hasActiveExecution)}><LockKeyhole size={15} /> Hybrid</button></div>
-              <p className="role-explainer">{roleMode === 'AUTO' ? 'The Role Architect selects complementary specialists for this question.' : roleMode === 'MANUAL' ? `Name all ${expertCount || 'required'} specialists yourself. Their roles are preserved exactly.` : 'Lock the specialists you want; the Role Architect fills the remaining seats.'}</p>
-              {roles.length > 0 && <div className="role-list">{roles.map((role, index) => <RoleEditor key={index} index={index} role={role} mode={roleMode} models={enabledModels} modelValue={expertOverrides[index] || role.modelOverride || ''} onModelChange={value => setExpertOverrides(current => ({ ...current, [index]: value }))} onChange={changes => editRole(index, changes)} onRemove={() => { setRoles(current => current.filter((_, position) => position !== index)); setPreviewReady(false); }} onRegenerate={previewReady && roleMode !== 'MANUAL' ? () => void regenerateRole(index) : undefined} disabled={Boolean(hasActiveExecution) || previewing} />)}</div>}
-              {!roles.length && <div className="empty-roles"><div className="empty-orbit"><Users2 size={22} /></div><strong>{roleMode === 'AUTO' ? 'Your specialists will appear here' : 'Start with a specialist'}</strong><span>{roleMode === 'AUTO' ? 'Preview the council or run immediately to assemble the lineup.' : 'Add roles with distinct responsibilities and expertise.'}</span></div>}
-              <div className="role-actions">{roleMode !== 'AUTO' && !previewReady && mode && roles.length < expertCount && <button className="text-button" onClick={() => setRoles(current => [...current, { title: '', instructions: '', locked: true }])}><Plus size={16} /> Add specialist <span>{roles.length}/{expertCount}</span></button>}{roleMode !== 'MANUAL' && <button className="text-button muted" onClick={() => void previewRoles()} disabled={!mode || previewing || Boolean(hasActiveExecution)}><Eye size={16} /> {previewing ? 'Assembling…' : previewReady ? 'Regenerate lineup' : 'Preview roles'}</button>}</div>
-            </section>
-
-            <section className="panel model-panel"><SectionHeading eyebrow="04 / MODEL ASSIGNMENT" title="Assign the right models" description="Use efficient models for exploration and a stronger model for the final answer." action={<button className="plain-link" onClick={() => setView('models')}>Manage registry <ArrowRight size={15} /></button>} />
-              <div className="model-row"><div className="model-row-icon"><WandSparkles size={18} /></div><div className="model-row-copy"><strong>Role Generator</strong><span>Builds the expert lineup</span></div><ModelSelect value={roleGeneratorModelId} onChange={setRoleGeneratorModelId} models={models} placeholder="Select role model" /></div>
-              <div className="model-row"><div className="model-row-icon"><Users2 size={18} /></div><div className="model-row-copy"><strong>Default Expert</strong><span>Independent specialist analysis</span></div><ModelSelect value={defaultExpertModelId} onChange={setDefaultExpertModelId} models={models} placeholder="Select expert model" /></div>
-              <div className="model-row judge-row"><div className="model-row-icon"><ShieldCheck size={18} /></div><div className="model-row-copy"><strong>Final Judge <span className="required-pill">REQUIRED</span></strong><span>Adjudicates the final answer</span></div><ModelSelect value={judgeModelId} onChange={setJudgeModelId} models={models} placeholder="Select Judge model" /></div>
-              {selectedJudge && !['premium', 'judge'].includes(selectedJudge.tier) && <div className="inline-hint warning"><CircleHelp size={15} /> A premium Judge is recommended for stronger final decisions.</div>}
-              {models.length === 0 && !bootLoading && <div className="inline-hint warning"><CircleHelp size={15} /> No models configured. Add a provider model in the registry before running.</div>}
-              {!Object.values(providerKeys).some(Boolean) && !bootLoading && <div className="inline-hint warning"><CircleHelp size={15} /> Add a provider API key to the server environment and restart the app before running.</div>}
-            </section>
-
-            <section className={`panel advanced-panel ${advancedOpen ? 'open' : ''}`}><button className="advanced-toggle" onClick={() => setAdvancedOpen(!advancedOpen)} aria-expanded={advancedOpen}><div className="advanced-title"><div className="advanced-icon"><SlidersHorizontal size={18} /></div><div><strong>Advanced settings</strong><span>Budgets, adaptive compute and execution controls</span></div></div><ChevronDown size={19} /></button>{advancedOpen && <AdvancedSettings mode={mode} count={expertCount} adaptiveCompute={adaptiveCompute} setAdaptiveCompute={setAdaptiveCompute} maxCostInput={maxCostInput} setMaxCostInput={setMaxCostInput} maxDebateRounds={maxDebateRounds} setMaxDebateRounds={setMaxDebateRounds} tokenBudgets={tokenBudgets} setTokenBudgets={setTokenBudgets} strongConfidence={strongConfidence} setStrongConfidence={setStrongConfidence} weakDissent={weakDissent} setWeakDissent={setWeakDissent} runImmediately={runImmediately} setRunImmediately={setRunImmediately} overrides={expertOverrides} setOverrides={setExpertOverrides} models={enabledModels} />}</section>
-
-            {formError && <div className="form-error"><CircleHelp size={17} /><span>{formError}</span><button onClick={() => setFormError('')} aria-label="Dismiss error"><X size={16} /></button></div>}
-            <div className="submit-bar"><div className="submit-caption"><span className="submit-symbol"><Zap size={17} /></span><div><strong>Ready when you are</strong><span>{mode ? `${expertCount} experts · 1 final Judge` : 'Choose a mode to begin'}</span></div></div><button className="primary-button" onClick={() => void startCouncil()} disabled={actionBusy || Boolean(hasActiveExecution)}>{actionBusy ? 'Starting council…' : !runImmediately && !previewReady && roleMode !== 'MANUAL' ? 'Preview council' : 'Run council'} <ArrowRight size={18} /></button></div>
-          </>}
-        </div>
-
-        <aside className="content-rail"><div className="rail-sticky">
-          {hasActiveExecution && <ExecutionCard execution={execution!} mode={mode} onCancel={() => void cancelCouncil()} cancelling={actionBusy} />}
-          <div className="rail-card estimate-card"><div className="rail-card-heading"><span>EXECUTION ESTIMATE</span><Coins size={18} /></div><div className="estimate-value">{estimate ? `${money(estimate.low)} – ${money(estimate.high)}` : '—'}</div><p>{estimate ? 'Approximate provider cost based on configured model pricing and token caps.' : 'Select a mode and priced models to see an estimate.'}</p><div className="rail-divider" /><div className="rail-data"><span>Expert seats</span><strong>{mode ? String(expertCount).padStart(2, '0') : '—'}</strong></div><div className="rail-data"><span>Debate rounds</span><strong>{mode === 'DEBATE' ? `Up to ${maxDebateRounds}` : mode ? '1' : '—'}</strong></div><div className="rail-data"><span>Final Judge</span><strong>{selectedJudge ? selectedJudge.displayName : 'Required'}</strong></div></div>
-          <div className="rail-card process-card"><div className="rail-card-heading"><span>HOW IT WORKS</span><Activity size={17} /></div><div className="process-line"><div><span>01</span><strong>Distinct experts</strong><small>Independent first perspectives</small></div><div><span>02</span><strong>Focused synthesis</strong><small>Only useful rounds continue</small></div><div><span>03</span><strong>Final Judge</strong><small>One clear, reasoned answer</small></div></div></div>
-          <div className="rail-tip"><span className="tip-mark">✦</span><p><strong>Better prompts, better decisions.</strong> Include your constraints, priorities and what a good outcome looks like.</p></div>
-        </div></aside>
-      </main>}
-
-      {view === 'history' && <main className="single-page"><div className="single-page-header"><div><span className="eyebrow">PAST DELIBERATIONS</span><h1>Decision history</h1><p>Revisit previous conclusions and inspect their cost and expert perspectives.</p></div><button className="secondary-button" onClick={newCouncil}><Plus size={17} /> New council</button></div>{selectedHistoryId ? <div className="history-detail"><button className="back-link" onClick={() => { setSelectedHistoryId(null); setSelectedResult(null); }}><ArrowLeft size={17} /> All decisions</button>{historyLoading ? <div className="loading-state"><RefreshCw className="spin" size={22} /> Loading decision…</div> : selectedResult ? <ResultView raw={selectedResult} onNew={newCouncil} compact /> : <div className="empty-state">Could not load this decision.</div>}</div> : history.length ? <div className="history-list">{history.map((entry, index) => { const item = historyFields(entry); return <button key={item.id || index} className="history-item" onClick={() => void openHistory(item.id)}><div className={`history-icon ${item.mode === 'DEBATE' ? 'debate' : ''}`}>{item.mode === 'DEBATE' ? <GitBranch size={19} /> : <span>Y/N</span>}</div><div className="history-main"><strong>{item.question}</strong><span>{date(item.createdAt)} <span className="history-dot">·</span> {modeLabel(item.mode)} <span className="history-dot">·</span> {titleCase(item.status)}</span></div><div className="history-cost">{item.cost ? money(item.cost) : '—'}</div><ChevronRight size={18} /></button>; })}</div> : <div className="empty-state"><FileClock size={25} /><strong>No decisions yet</strong><span>Your completed council runs will appear here.</span><button className="primary-button" onClick={newCouncil}>Start a council <ArrowRight size={17} /></button></div>}</main>}
+      {view === 'history' && <main className="single-page"><div className="single-page-header"><div><span className="eyebrow">PAST DELIBERATIONS</span><h1>Decision history</h1><p>Revisit previous conclusions and inspect their cost and expert perspectives.</p></div><button className="secondary-button" onClick={newCouncil}><Plus size={17} /> New council</button></div>{selectedHistoryId ? <div className="history-detail"><button className="back-link" onClick={() => { setSelectedHistoryId(null); setSelectedResult(null); }}><ArrowLeft size={17} /> All decisions</button>{historyLoading ? <div className="loading-state"><RefreshCw className="spin" size={22} /> Loading decision…</div> : selectedResult ? <ResultView raw={selectedResult} onNew={newCouncil} compact /> : <div className="empty-state">Could not load this decision.</div>}</div> : history.length ? <div className="history-list">{history.map((entry, index) => { const item = historyFields(entry); return <button key={item.id || index} className="history-item" onClick={() => void openHistory(item.id)}><div className={`history-icon ${item.mode === 'DEBATE' ? 'debate' : ''}`}>{item.mode === 'DEBATE' ? <GitBranch size={19} /> : <span>Y/N</span>}</div><div className="history-main"><strong>{item.question}</strong><span>{date(item.createdAt)} <span className="history-dot">·</span> {modeLabel(item.mode)} <span className="history-dot">·</span> {titleCase(item.status)}</span></div><div className="history-cost">{item.costComplete ? (item.cost ? money(item.cost) : '$0.00') : item.cost ? `${money(item.cost)}+` : 'Unknown cost'}</div><ChevronRight size={18} /></button>; })}</div> : <div className="empty-state"><FileClock size={25} /><strong>No decisions yet</strong><span>Your completed council runs will appear here.</span><button className="primary-button" onClick={newCouncil}>Start a council <ArrowRight size={17} /></button></div>}</main>}
 
       {view === 'models' && <ModelRegistry models={models} providerKeys={providerKeys} onSaved={async () => { await reloadBootstrap(); setToast('Model registry saved.'); }} onBack={() => setView('compose')} />}
+      {historyOpen && view === 'compose' && <div className="history-scrim" onClick={event => { if (event.target === event.currentTarget) setHistoryOpen(false); }}><aside className="history-drawer" aria-label="Past rulings"><div className="history-drawer-head"><div><small>YOUR COURT RECORDS</small><h2>Past rulings</h2></div><button className="icon-button" aria-label="Close history" onClick={() => setHistoryOpen(false)}><X size={18}/></button></div>{history.length ? <div className="history-drawer-list">{history.map((entry,index)=>{const item=historyFields(entry);return <button key={item.id||index} onClick={()=>void openHistory(item.id)}><span className={`history-drawer-icon ${item.mode==='DEBATE'?'debate':''}`}>{item.mode==='DEBATE'?'💬':'⚖'}</span><span className="history-drawer-copy"><b>{item.question}</b><small>{date(item.createdAt)} · {modeLabel(item.mode)}</small></span><span className="history-drawer-cost">{item.costComplete?money(item.cost):item.cost?`${money(item.cost)}+`:'Unknown'}</span></button>;})}</div>:<div className="history-drawer-empty"><span>📜</span><b>No rulings yet</b><small>Your council's decisions will be kept here.</small></div>}{historyLoading&&<div className="loading-state"><RefreshCw className="spin" size={18}/> Opening ruling…</div>}</aside></div>}
       {toast && <div className="toast"><CheckCircle2 size={18} /> {toast}<button onClick={() => setToast('')} aria-label="Dismiss notification"><X size={14} /></button></div>}
     </div>
   </div>;

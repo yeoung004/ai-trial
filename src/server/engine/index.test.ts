@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runCouncil, generateRoles, CouncilError, type ModelAdapter, type StructuredCall } from "./index.js";
 import { stancesCompatible } from "./logic.js";
-import type { CouncilRequest, DebateExpertAnswer, ExpertRole, ModelConfig, CallStage } from "../../shared/types.js";
+import type { CouncilRequest, DebateExpertAnswer, ExpertRole, ModelConfig, CallStage, StageEvent } from "../../shared/types.js";
 
 const registry: ModelConfig[] = [
   { id: "roles", provider: "gateway", model: "openai/role-model", displayName: "Role", tier: "economy", enabled: true, inputCostPerMillion: 1, outputCostPerMillion: 2 },
@@ -151,13 +151,15 @@ describe("YES / NO council", () => {
 
   it("uses selected model IDs at each stage", async () => {
     const adapter = new StubAdapter();
+    const stages: StageEvent[] = [];
     const input = request("YES_NO", "AUTO");
     input.approvedRoles = undefined;
     input.models.expertModelOverrides = { 2: "override" };
-    await runCouncil(input, { adapter });
+    await runCouncil(input, { adapter, onStage: event => stages.push(event) });
     expect(adapter.calls.find((call) => call.stage === "role_generation")?.modelId).toBe("roles");
     expect(adapter.calls.filter((call) => call.stage === "yes_no_expert").map((call) => call.modelId)).toEqual(["expert", "expert", "override", "expert", "expert"]);
     expect(adapter.calls.find((call) => call.stage === "judge")?.modelId).toBe("judge");
+    expect(stages.find(event => event.roles)?.roles).toHaveLength(5);
   });
 });
 

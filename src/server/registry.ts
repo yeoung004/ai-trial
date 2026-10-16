@@ -66,6 +66,16 @@ export const DEFAULT_MODELS: ModelConfig[] = [
     enabled: true,
   },
   {
+    id: "openai:gpt-5.4-nano",
+    provider: "openai",
+    model: "gpt-5.4-nano",
+    displayName: "GPT-5.4 Nano",
+    tier: "economy",
+    inputCostPerMillion: 0.2,
+    outputCostPerMillion: 1.25,
+    enabled: true,
+  },
+  {
     id: "openai:gpt-5.4-mini",
     provider: "openai",
     model: "gpt-5.4-mini",

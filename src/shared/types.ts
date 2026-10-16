@@ -106,6 +106,7 @@ export interface StageEvent {
   at: string;
   round?: number;
   message?: string;
+  roles?: ExpertRole[];
 }
 
 export type CallStage =
