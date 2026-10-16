@@ -28,11 +28,9 @@ export async function requireSubscription(connection: Connection) {
       "Muse Code is not connected with a browser account. Sign in locally; API-key billing is disabled for this provider.",
     );
   const usage = await readUsage(connection);
-  if (!usage)
-    throw new MuseError(
-      "MUSE_ALLOWANCE_UNAVAILABLE",
-      "Muse allowance unavailable. Subscription usage could not be verified.",
-    );
+  // MSP reports only the last observed usage, not a live allowance probe.
+  // A fresh host can legitimately have no snapshot before its first turn.
+  if (!usage) return null;
   if (
     [usage.fiveHourWindow, usage.weeklyWindow].some(
       (w) => w && w.usedPercent >= 100,

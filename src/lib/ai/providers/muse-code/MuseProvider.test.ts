@@ -25,10 +25,10 @@ describe("Muse subscription boundary", () => {
       expect(c.request).toHaveBeenCalledTimes(1);
     },
   );
-  it("requires actual subscription usage even after browser sign-in", async () => {
+  it("accepts browser sign-in before a usage snapshot has been observed", async () => {
     await expect(
       requireSubscription(connection([{ state: "accountLogin" }, {}])),
-    ).rejects.toMatchObject({ code: "MUSE_ALLOWANCE_UNAVAILABLE" });
+    ).resolves.toBeNull();
   });
   it("normalizes usage windows and rejects quota exhaustion", async () => {
     expect(await readUsage(connection([{ usage }]))).toEqual({

@@ -4,17 +4,63 @@ import {
   readSessionDurability,
   type SpawnedMspConnection,
 } from "@muse-code/sdk";
-import { mkdtemp, mkdir, rm, readFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, readFile, access } from "node:fs/promises";
 import { tmpdir, homedir } from "node:os";
-import { join } from "node:path";
+import { join, delimiter, isAbsolute } from "node:path";
+import { constants } from "node:fs";
 import { disconnected, MuseError } from "./MuseErrors.js";
+
+export const museHostArgs = [
+  "serve",
+  "--provider",
+  "meta",
+  "--no-session-log",
+  "--disable-shell",
+  "--disable-write",
+  "--disable-request-user-input",
+  "-c",
+  'run.workflow_trigger_mode="off"',
+  "-c",
+  "tools.artifact.enabled=false",
+  "-c",
+  "tools.web_fetch.enabled=false",
+  "-c",
+  'tools.web_search.mode="off"',
+];
+
+export async function resolveMuseBinary(
+  env: NodeJS.ProcessEnv = process.env,
+  home = homedir(),
+) {
+  const configured = env.MUSE_BIN || "muse";
+  const candidates =
+    isAbsolute(configured) || configured.includes("/")
+      ? [configured]
+      : [
+          ...(env.PATH || "")
+            .split(delimiter)
+            .filter(Boolean)
+            .map((directory) => join(directory, configured)),
+          ...(configured === "muse" ? [join(home, ".local/bin/muse")] : []),
+        ];
+  for (const candidate of candidates) {
+    try {
+      await access(candidate, constants.X_OK);
+      return candidate;
+    } catch {
+      /* Try next known installation path. */
+    }
+  }
+  throw disconnected();
+}
 
 export class MuseHostManager {
   private host?: SpawnedMspConnection;
   private client?: MuseClient;
   private directory?: string;
   async open() {
-    // Empty preset suppresses built-ins. Refuse locally configured extensions:
+    // Serve does not support the TUI empty preset. Disable supported tools
+    // and workflows explicitly. Refuse locally configured extensions:
     // approvals alone cannot prevent startup hooks or read-only MCP execution.
     try {
       const settings = JSON.parse(
@@ -42,14 +88,15 @@ export class MuseHostManager {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
+    const command = await resolveMuseBinary();
     this.directory = await mkdtemp(join(tmpdir(), "ai-court-"));
     await mkdir(join(this.directory, ".git")); // Stop inherited project instructions at this empty boundary.
     const env = { ...process.env };
     for (const key of Object.keys(env))
       if (/API_KEY|TRANSPORT_TRACE/.test(key)) delete env[key];
     const handshake = spawnMspConnection({
-      command: process.env.MUSE_BIN || "muse",
-      args: ["serve", "--preset", "empty", "--provider", "meta"],
+      command,
+      args: museHostArgs,
       cwd: this.directory,
       env,
       shutdownTimeoutMs: 1000,
@@ -71,10 +118,16 @@ export class MuseHostManager {
         connection: this.host.connection,
         workspaceRoot: this.directory,
       };
-    } catch {
-      await handshake.close().catch(() => undefined);
+    } catch (error) {
+      const exit = await handshake.close().catch(() => undefined);
       await this.close();
-      throw disconnected();
+      if (error instanceof MuseError) throw error;
+      throw new MuseError(
+        "MUSE_HOST_FAILED",
+        exit?.code === 2
+          ? "Muse rejected the SDK host startup options. Check CLI compatibility."
+          : "Muse could not start its SDK host. Check the local installation and host configuration.",
+      );
     }
   }
   async bound<T>(promise: Promise<T>, ms = 12000): Promise<T> {

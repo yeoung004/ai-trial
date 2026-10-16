@@ -16,11 +16,11 @@ Open http://127.0.0.1:5173. Choose models in **Settings → AI** (`/settings/ai`
 
 ### Muse subscription (initial provider)
 
-Install and browser-sign-in to the local Muse Code CLI. The official SDK is pinned to **1.4.9**; use a matching CLI version. Set `MUSE_BIN` in the server environment if the binary is not on PATH. No API key is required for this provider.
+Install and browser-sign-in to the local Muse Code CLI. The official SDK is pinned to **1.4.9**; host startup, browser sign-in, and model discovery have been verified with CLI **1.4.10**. Set `MUSE_BIN` in the server environment if the binary is not on PATH. No API key is required for this provider.
 
-Each inference gets its own SDK-owned host and fresh session in an empty temporary workspace. Hosts use the empty tool preset and deny unmatched approvals; configurations containing hooks, MCP servers, or plugins are refused. The host is closed after success, failure, cancellation, or timeout. The adapter never invokes `muse exec`.
+Each inference gets its own SDK-owned host and fresh session in an empty temporary workspace. The `serve` command does not support `--preset empty`. Hosts instead disable shell execution, file writes, user-input tools, automatic workflows, artifact tools, web fetching, and web search using supported flags and configuration, and deny unmatched approvals; configurations containing hooks, MCP servers, or plugins are refused. The host is closed after success, failure, cancellation, or timeout. The adapter never invokes `muse exec`.
 
-The subscription adapter verifies the effective browser-login credential lane through experimental `account/read`, then requires subscription allowance from `usage/read`. A stored API key, unknown credential lane, unsupported account endpoint, missing usage, or exhausted allowance stops execution. It never switches to a paid provider. Model discovery uses the session's `model/list`, restricted to the Meta route, rather than the public API catalog.
+The subscription adapter verifies the effective browser-login credential lane through experimental `account/read`, then reads optional subscription usage from `usage/read`. A stored API key, unknown credential lane, unsupported account endpoint, or reported exhausted allowance stops execution. A fresh host may have no usage snapshot; this is displayed as usage unavailable without treating the account as disconnected. It never switches to a paid provider. Model discovery uses the session's `model/list`, restricted to the Meta route, rather than the public API catalog.
 
 SDK 1.4.9 does not expose a hard output-token cap on `sendUserTurn`. Muse receives the concise schema and a requested output length; validated field limits and a three-minute turn deadline bound the workflow. API providers receive hard output-token limits. Missing token measurements are stored with `tokensKnown: false`, and unknown monetary pricing is not treated as a known zero.
 

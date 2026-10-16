@@ -1,7 +1,12 @@
 import type { Profession } from "./ProfessionOutfit";
 export function ProfessionHat({ profession: p }: { profession: Profession }) {
   return (
-    <g stroke="#4E392C" strokeWidth="2.5" strokeLinejoin="round">
+    <g
+      stroke="#FFFFFF"
+      strokeWidth="4"
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
+    >
       {p === "chef" ? (
         <path
           d="M47 29V18Q30 7 47 2Q56-8 69 1Q82-9 94 1Q115-4 119 12Q121 20 112 23V29Z"
@@ -19,9 +24,16 @@ export function ProfessionHat({ profession: p }: { profession: Profession }) {
         </>
       ) : p === "judge" ? (
         <>
-          <path d="M40 27L45 10Q80-2 115 10L120 27Z" fill="#594940" />
-          <rect x="34" y="25" width="92" height="8" rx="4" fill="#88715A" />
-          <circle cx="80" cy="16" r="5" fill="#E4B05F" />
+          <path d="M42 27V10H118V27Z" fill="#594940" />
+          <rect x="34" y="25" width="92" height="8" fill="#88715A" />
+          <rect
+            x="76"
+            y="13"
+            width="8"
+            height="8"
+            fill="#E4B05F"
+            stroke="none"
+          />
         </>
       ) : p === "engineer" ? (
         <>
@@ -36,10 +48,10 @@ export function ProfessionHat({ profession: p }: { profession: Profession }) {
         </>
       ) : null}
       {["economist", "researcher"].includes(p) && (
-        <g fill="none">
-          <rect x="48" y="48" width="26" height="24" rx="8" />
-          <rect x="86" y="48" width="26" height="24" rx="8" />
-          <path d="M74 56H86" />
+        <g fill="none" stroke="#4E392C" strokeWidth="2.5">
+          <rect x="40" y="52" width="25" height="27" />
+          <rect x="95" y="52" width="25" height="27" />
+          <path d="M65 62H95" />
         </g>
       )}
     </g>

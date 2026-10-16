@@ -27,63 +27,64 @@ export function ProfessionOutfit({
 }: {
   profession: Profession;
 }) {
+  if (p === "general") return null;
   const color = {
-    engineer: "#9CB2A0",
-    chef: "#DDA37F",
-    doctor: "#fffdf5",
-    economist: "#B1A087",
-    controls: "#E3B766",
-    lawyer: "#74695F",
-    researcher: "#fffdf5",
-    designer: "#B9A48C",
-    general: "#D6AB83",
-    judge: "#594940",
+    engineer: "#738E7C",
+    chef: "#FFF8EC",
+    doctor: "#FFF8EC",
+    economist: "#8D795D",
+    controls: "#E8B953",
+    lawyer: "#586675",
+    researcher: "#FFF8EC",
+    designer: "#93A084",
+    judge: "#4D3C36",
   }[p];
   return (
-    <g stroke="#4E392C" strokeWidth="2" strokeLinejoin="round">
-      <path d="M51 100L63 94H97L109 100L114 145Q80 160 46 145Z" fill={color} />
-      {["doctor", "researcher"].includes(p) ? (
+    <g strokeLinejoin="miter">
+      <path d="M33 99H127V120H33Z" fill={color} />
+      {p === "judge" ? (
+        <>
+          <path d="M64 99H96L89 113H71Z" fill="#FFF8EC" />
+          <path d="M50 104V120M110 104V120" stroke="#806B5D" strokeWidth="3" />
+        </>
+      ) : ["doctor", "researcher"].includes(p) ? (
         <>
           <path
-            d="M69 96L77 116L69 128M91 96L83 116L91 128M80 116V151"
+            d="M70 99L78 109L70 119M90 99L82 109L90 119"
+            stroke="#B5B6A5"
+            strokeWidth="2"
             fill="none"
           />
-          <rect x="91" y="120" width="14" height="10" rx="2" fill="#F3E7D5" />
-        </>
-      ) : p === "judge" ? (
-        <>
-          <path d="M65 94L80 113L95 94L91 117H69Z" fill="#FFF8EC" />
-          <path d="M62 120V147M98 120V147" stroke="#8A7362" />
+          <path d="M103 105V115M98 110H108" stroke="#D77756" strokeWidth="3" />
         </>
       ) : p === "chef" ? (
-        <>
-          <path d="M63 99V118H97V99M61 118L57 146H103L99 118Z" fill="#FFF8EC" />
-          <path d="M70 129H90V139H70Z" fill="#F3E7D5" />
-        </>
+        <path
+          d="M62 99V113H98V99"
+          fill="none"
+          stroke="#D8BA98"
+          strokeWidth="3"
+        />
+      ) : p === "controls" ? (
+        <path
+          d="M51 99V120M109 99V120M33 113H127"
+          stroke="#FFF8EC"
+          strokeWidth="4"
+        />
       ) : p === "engineer" ? (
         <>
-          <path d="M60 98Q80 119 100 98M69 108V123M91 108V123" fill="none" />
-          <path d="M63 132Q80 126 97 132V143H63Z" fill="#C0CDB9" />
-        </>
-      ) : p === "controls" ? (
-        <>
           <path
-            d="M64 99V150M96 99V150M49 132H111"
-            stroke="#FFF8EC"
-            strokeWidth="7"
+            d="M64 99L80 109L96 99M69 103V114M91 103V114"
+            stroke="#C9D6C6"
+            strokeWidth="2"
+            fill="none"
           />
         </>
-      ) : (
+      ) : ["lawyer", "economist"].includes(p) ? (
         <>
-          <path d="M63 96L80 116L97 96M80 116V150" fill="none" />
-          {["lawyer", "economist"].includes(p) && (
-            <path
-              d="M75 104H85L82 115L86 134L80 140L74 134L78 115Z"
-              fill="#D97842"
-            />
-          )}
+          <path d="M65 99L80 114L95 99" fill="#FFF8EC" />
+          <path d="M77 100H83L82 107L85 117H75L78 107Z" fill="#D77756" />
         </>
-      )}
+      ) : null}
     </g>
   );
 }

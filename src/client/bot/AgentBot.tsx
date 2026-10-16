@@ -1,4 +1,4 @@
-import { BotBody, BotHead } from "./body/BotBody";
+import { BotBody, BotShadow } from "./body/BotBody";
 import { BotFace } from "./face/BotFace";
 import { ProfessionOutfit, type Profession } from "./outfits/ProfessionOutfit";
 import { ProfessionHat } from "./outfits/ProfessionHat";
@@ -28,15 +28,15 @@ export function AgentBot({
   return (
     <div
       className={`agent-bot bot-${state} ${profession === "judge" ? "judge-bot" : ""}`}
-      style={{ "--delay": `${(hash % 17) / 10}s` } as React.CSSProperties}
+      style={{ "--delay": `${-(hash % 23) / 10}s` } as React.CSSProperties}
       aria-hidden="true"
     >
       <svg viewBox="0 -10 160 185">
+        <BotShadow />
         <g className="bot-body">
           <BotBody />
           <ProfessionOutfit profession={profession} />
           <g className="bot-head">
-            <BotHead />
             <BotFace speaking={state === "speaking"} />
             <ProfessionHat profession={profession} />
           </g>

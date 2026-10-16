@@ -639,35 +639,53 @@ progress {
 .history-entry strong {
   font-size: 19px;
 }
+.agent-bot {
+  --bounce-duration: 2.8s;
+  --bounce-height: -24px;
+}
+.judge-bot {
+  --bounce-height: -14px;
+  --bounce-duration: 3.2s;
+}
 .bot-body {
-  animation: bot-idle 4s ease-in-out infinite;
+  animation: sticker-bounce var(--bounce-duration) infinite;
   animation-delay: var(--delay);
-  transform-origin: 80px 155px;
+  transform-origin: 80px 156px;
+}
+.bot-shadow {
+  animation: sticker-shadow var(--bounce-duration) infinite;
+  animation-delay: var(--delay);
+  transform-origin: 80px 166px;
 }
 .bot-eyes {
   animation: bot-blink 5.5s infinite;
   animation-delay: var(--delay);
-  transform-origin: 80px 61px;
+  transform-origin: 80px 65px;
 }
-.bot-thinking .bot-body {
-  animation-duration: 1.2s;
+.bot-thinking {
+  --bounce-duration: 1.65s;
+  --bounce-height: -16px;
 }
-.bot-thinking .bot-head {
-  animation: head-tilt 2.3s ease-in-out infinite;
-  transform-origin: 80px 90px;
+.bot-speaking {
+  --bounce-duration: 2s;
+  --bounce-height: -20px;
+}
+.bot-waiting {
+  --bounce-duration: 3.6s;
+  --bounce-height: -12px;
+}
+.bot-agreeing {
+  --bounce-duration: 1.1s;
+  --bounce-height: -28px;
+  --delay: 0s !important;
+}
+.bot-disagreeing {
+  --bounce-duration: 1.35s;
+  --bounce-height: -18px;
 }
 .bot-speaking .bot-mouth {
-  animation: talk 0.4s alternate infinite;
-  transform-origin: 80px 73px;
-}
-.bot-speaking .bot-body {
-  animation-duration: 2s;
-}
-.bot-agreeing .bot-body {
-  animation: agree 0.8s ease-in-out 3;
-}
-.bot-disagreeing .bot-body {
-  animation: hop 0.45s ease-in-out 2;
+  animation: talk 0.35s steps(2) alternate infinite;
+  transform-origin: 80px 88px;
 }
 .bot-entering {
   animation: enter 0.6s both;
@@ -692,15 +710,83 @@ progress {
   place-items: center;
   font-weight: 800;
   color: #b66b38;
-  animation: bot-idle 1.4s infinite;
+  animation: emote-pop 1.4s ease-in-out infinite;
 }
-@keyframes bot-idle {
+/* Anticipate → stretch on takeoff → hang → squash on impact → recoil. */
+@keyframes sticker-bounce {
   0%,
+  30%,
   100% {
-    transform: translateY(0) scaleY(1);
+    transform: translate(0, 0) scale(1, 1) rotate(0);
+    animation-timing-function: ease-in;
   }
+  40% {
+    transform: translate(-2px, 1px) scale(1.13, 0.81) rotate(-3deg);
+    animation-timing-function: cubic-bezier(0.16, 0.7, 0.3, 1);
+  }
+  48% {
+    transform: translate(1px, -12px) scale(0.87, 1.15) rotate(1deg);
+    animation-timing-function: ease-out;
+  }
+  59% {
+    transform: translate(3px, var(--bounce-height)) scale(1.03, 0.98)
+      rotate(4deg);
+    animation-timing-function: ease-in;
+  }
+  70% {
+    transform: translate(1px, -10px) scale(0.94, 1.08) rotate(1deg);
+    animation-timing-function: ease-in;
+  }
+  76% {
+    transform: translate(0, 1px) scale(1.17, 0.78) rotate(-2deg);
+    animation-timing-function: ease-out;
+  }
+  83% {
+    transform: translate(-1px, -7px) scale(0.96, 1.05) rotate(-1deg);
+    animation-timing-function: ease-in;
+  }
+  90% {
+    transform: translate(0, 0) scale(1.04, 0.95) rotate(0);
+    animation-timing-function: ease-out;
+  }
+  96% {
+    transform: translate(0, 0) scale(1, 1) rotate(0);
+  }
+}
+@keyframes sticker-shadow {
+  0%,
+  30%,
+  96%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.18;
+  }
+  40%,
+  76% {
+    transform: scaleX(1.12);
+    opacity: 0.23;
+  }
+  48%,
+  70% {
+    transform: scaleX(0.76);
+    opacity: 0.12;
+  }
+  59% {
+    transform: scaleX(0.55);
+    opacity: 0.08;
+  }
+  83% {
+    transform: scaleX(0.85);
+    opacity: 0.14;
+  }
+  90% {
+    transform: scaleX(1.04);
+    opacity: 0.19;
+  }
+}
+@keyframes emote-pop {
   50% {
-    transform: translateY(-3px) scaleY(1.015);
+    transform: rotate(8deg) scale(1.12);
   }
 }
 @keyframes bot-blink {
@@ -714,24 +800,9 @@ progress {
     transform: scaleY(0.12);
   }
 }
-@keyframes head-tilt {
-  50% {
-    transform: rotate(4deg);
-  }
-}
 @keyframes talk {
   to {
     transform: scaleY(0.4);
-  }
-}
-@keyframes agree {
-  50% {
-    transform: translateY(-8px);
-  }
-}
-@keyframes hop {
-  50% {
-    transform: translateY(-9px) rotate(-3deg);
   }
 }
 @keyframes enter {

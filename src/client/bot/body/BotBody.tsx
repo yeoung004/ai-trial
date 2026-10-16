@@ -1,72 +1,29 @@
+/** One continuous pixel silhouette, with a die-cut sticker border. */
 export function BotBody() {
   return (
-    <g stroke="#4E392C" strokeWidth="2.5" strokeLinejoin="round">
-      <ellipse
-        cx="80"
-        cy="167"
-        rx="40"
-        ry="7"
-        fill="#4E392C"
-        opacity=".13"
-        stroke="none"
-      />
-      <rect x="49" y="142" width="25" height="23" rx="10" fill="#FFF8EC" />
-      <rect x="86" y="142" width="25" height="23" rx="10" fill="#FFF8EC" />
-      <rect x="46" y="87" width="68" height="66" rx="25" fill="#FFF8EC" />
-      <rect
-        x="27"
-        y="100"
-        width="24"
-        height="40"
-        rx="12"
-        fill="#FFF8EC"
-        transform="rotate(12 39 120)"
-      />
-      <rect
-        x="109"
-        y="100"
-        width="24"
-        height="40"
-        rx="12"
-        fill="#FFF8EC"
-        transform="rotate(-12 121 120)"
-      />
-      <rect
-        x="69"
-        y="119"
-        width="22"
-        height="11"
-        rx="5"
-        fill="#D97842"
-        stroke="none"
-      />
-    </g>
+    <path
+      className="bot-silhouette"
+      d="M28 28H132V56H145V94H132V156H116V126H104V156H92V132H68V156H56V126H44V156H28V94H15V56H28Z"
+      fill="#D77756"
+      stroke="#FFFFFF"
+      strokeWidth="7"
+      strokeLinejoin="round"
+      paintOrder="stroke fill"
+    />
   );
 }
-export function BotHead() {
+
+/** The shadow stays on the floor while the sticker jumps. */
+export function BotShadow() {
   return (
-    <g stroke="#4E392C" strokeWidth="2.5">
-      <path d="M80 22V13" />
-      <circle cx="80" cy="10" r="5" fill="#D97842" />
-      <rect x="22" y="48" width="13" height="24" rx="6" fill="#D97842" />
-      <rect x="125" y="48" width="13" height="24" rx="6" fill="#D97842" />
-      <rect x="29" y="23" width="102" height="76" rx="28" fill="#FFF8EC" />
-      <path
-        d="M43 40Q47 32 59 32"
-        stroke="#fff"
-        strokeWidth="5"
-        fill="none"
-        strokeLinecap="round"
-      />
-      <rect
-        x="43"
-        y="44"
-        width="74"
-        height="38"
-        rx="17"
-        fill="#F3E7D5"
-        stroke="none"
-      />
-    </g>
+    <ellipse
+      className="bot-shadow"
+      cx="80"
+      cy="166"
+      rx="48"
+      ry="6"
+      fill="#79533B"
+      opacity=".18"
+    />
   );
 }

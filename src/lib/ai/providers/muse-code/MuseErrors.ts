@@ -11,6 +11,6 @@ export class MuseError extends Error {
 export function disconnected() {
   return new MuseError(
     "MUSE_UNAVAILABLE",
-    "Muse Code is not connected. Install the matching local CLI and sign in, then refresh AI Settings.",
+    "Muse CLI was not found. Install it or set MUSE_BIN to its executable path, then refresh AI Settings.",
   );
 }
