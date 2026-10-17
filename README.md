@@ -8,7 +8,6 @@ Requires Node.js 20.12 or newer.
 
 ```sh
 npm install
-cp .env.example .env
 npm run dev
 ```
 
@@ -18,7 +17,13 @@ Open http://127.0.0.1:5173. Choose models in **Settings → AI** (`/settings/ai`
 
 No provider or model is selected automatically. Without a configured provider, execution is blocked before inference.
 
-Configure only the providers you intend to select:
+Create a local `.env` file in the project root and add only the credentials for providers you intend to select. Restart the development server after changing credentials. For example:
+
+```dotenv
+ANTHROPIC_API_KEY=your-key
+```
+
+Supported provider configuration:
 
 | Provider | Server environment |
 | --- | --- |
