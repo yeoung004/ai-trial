@@ -1,3 +1,4 @@
+import { recordExpertFailure } from "./expertFailure.js";
 import {
   DEBATE_INITIAL_SYSTEM,
   DEBATE_REBUTTAL_SYSTEM,
@@ -100,16 +101,17 @@ export async function debateRound(
     }),
   );
   execution.throwIfAborted();
+  const failures: ReturnType<typeof recordExpertFailure>[] = [];
   const successful = settled.flatMap((item, index) => {
     if (item.status === "fulfilled") return [item.value];
-    execution.degraded = true;
-    execution.failedExpertIndices.add(active[index].expertIndex);
+    failures.push(recordExpertFailure(execution, active[index].role, active[index].expertIndex, item.reason, round));
     return [];
   });
   if (round === 1 && successful.length < 2)
     throw new CouncilError(
       "EXPERT_QUORUM_FAILED",
-      "Fewer than two debate experts returned valid results.",
+      "Fewer than two debate experts returned valid results. The Judge was not called. See each expert’s error for details.",
+      { failures },
     );
   if (round === 1) return successful;
   return previous.map(

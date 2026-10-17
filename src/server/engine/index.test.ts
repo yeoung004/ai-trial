@@ -236,7 +236,8 @@ describe("Debate council", () => {
     const costly = registry.map((model) => ({ ...model, inputCostPerMillion: 100, outputCostPerMillion: 100 }));
     const input = request("DEBATE");
     input.models.registry = costly;
-    input.settings = { maxCost: 0.43 };
+    // Mandatory estimate is $0.65; another round plus reserved Judge exceeds $0.68.
+    input.settings = { maxCost: 0.68 };
     const adapter = new StubAdapter((call) => {
       if (call.stage === "debate_initial") return debateAnswer(call.prompt.role === "Specialist 3" ? "Avoid PostgreSQL." : "Use PostgreSQL.");
       return undefined;
@@ -293,5 +294,32 @@ it("records unknown pricing as null while preserving mandatory Judge execution",
   expect(result.usage.totalCost).toBeNull();
   expect(result.usage.costComplete).toBe(false);
   expect(result.usage.calls.every((call) => call.estimatedCost === null)).toBe(true);
+  expect(count(adapter, "judge")).toBe(1);
+});
+
+it("reports each failed expert and never calls the Judge without quorum", async () => {
+  const { AIProviderError } = await import("../../lib/ai/core/errors.js");
+  const events: StageEvent[] = [];
+  const adapter = new StubAdapter((call) => {
+    if (call.stage === "debate_initial" && call.prompt.role !== "Specialist 3") throw new AIProviderError("OUTPUT_LIMIT");
+  });
+  await expect(runCouncil(request("DEBATE"), { adapter, onStage: (event) => events.push(event) }))
+    .rejects.toMatchObject({ code: "EXPERT_QUORUM_FAILED", details: { failures: [
+      expect.objectContaining({ expertId: "expert-1", code: "OUTPUT_LIMIT" }),
+      expect.objectContaining({ expertId: "expert-2", code: "OUTPUT_LIMIT" }),
+    ] } });
+  expect(events.filter((event) => event.type === "EXPERT_FAILED")).toHaveLength(2);
+  expect(count(adapter, "debate_initial")).toBe(5);
+  expect(count(adapter, "judge")).toBe(0);
+});
+
+it("recovers from truncated expert output with one retry and reaches the Judge", async () => {
+  const { AIProviderError } = await import("../../lib/ai/core/errors.js");
+  const adapter = new StubAdapter((call, attempt) => {
+    if (call.stage === "debate_initial" && attempt === 1) throw new AIProviderError("OUTPUT_LIMIT");
+  });
+  const result = await runCouncil(request("DEBATE"), { adapter });
+  expect(result.status).toBe("complete");
+  expect(count(adapter, "debate_initial")).toBe(6);
   expect(count(adapter, "judge")).toBe(1);
 });

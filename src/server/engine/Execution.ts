@@ -1,3 +1,4 @@
+import { DEFAULT_TOKEN_BUDGETS } from "../../shared/tokenBudgets.js";
 import {
   estimatedJudgeCost,
   ensurePricing,
@@ -136,13 +137,12 @@ export class Execution {
 
   budget(key: BudgetKey): number {
     const adaptive = this.request.settings?.adaptiveCompute ?? "BALANCED";
-    const defaults: Record<BudgetKey, number> = {
-      roleGenerator: 320,
-      yesNoExpert: adaptive === "LOW" ? 100 : 120,
-      debateInitial: adaptive === "LOW" ? 180 : 220,
-      debateRebuttal: adaptive === "LOW" ? 110 : 140,
-      crossEvaluation: 100,
-      judge: adaptive === "LOW" ? 500 : adaptive === "HIGH" ? 800 : 650,
+    const defaults = {
+      ...DEFAULT_TOKEN_BUDGETS,
+      yesNoExpert: adaptive === "LOW" ? 300 : DEFAULT_TOKEN_BUDGETS.yesNoExpert,
+      debateInitial: adaptive === "LOW" ? 600 : DEFAULT_TOKEN_BUDGETS.debateInitial,
+      debateRebuttal: adaptive === "LOW" ? 500 : DEFAULT_TOKEN_BUDGETS.debateRebuttal,
+      judge: adaptive === "LOW" ? 1000 : adaptive === "HIGH" ? 1600 : DEFAULT_TOKEN_BUDGETS.judge,
     };
     const value = this.request.settings?.tokenBudgets?.[key] ?? defaults[key];
     if (!Number.isInteger(value) || value < 50 || value > 2000) {
@@ -196,7 +196,8 @@ export class Execution {
         response = await this.adapter.generate<T>({
           model: args.model,
           stage: args.stage,
-          system: args.system,
+          system: `${args.system}
+The entire JSON response must fit within ${args.maxOutputTokens} output tokens, including keys and punctuation. Use short phrases, few list items, and leave room for every required field. Keep the user’s language.${attempt > 1 ? " This is the final retry: make every text field much shorter and return a complete valid object." : ""}`,
           prompt: args.prompt,
           schema: args.schema,
           maxOutputTokens: args.maxOutputTokens,

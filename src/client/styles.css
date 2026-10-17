@@ -989,3 +989,31 @@ html[data-motion="reduced"] *:after {
   animation: none !important;
   transition: none !important;
 }
+
+.judge-ruling-preview {
+  width: min(440px, calc(100vw - 48px));
+  padding: 16px 20px;
+  margin: 8px 0 18px;
+  border: 2px solid #77553a;
+  border-radius: 18px;
+  background: #fff9ed;
+  color: #493425;
+  box-shadow: 0 4px 0 #946b4920;
+  font-size: 20px;
+  line-height: 1.5;
+}
+.judge-ruling-preview p {
+  margin: 0 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.judge-ruling-preview a {
+  color: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  text-underline-offset: 3px;
+}
+#judge-ruling { scroll-margin-top: 24px; }

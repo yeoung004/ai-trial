@@ -71,6 +71,7 @@ export const aiSdkModelAdapter: ModelAdapter = {
       // The engine owns the single retry and records each attempt.
       maxRetries: 0,
     });
+    if (result.finishReason === "length") throw new AIProviderError("OUTPUT_LIMIT");
     return {
       object: call.schema.parse(result.output),
       tokensKnown:

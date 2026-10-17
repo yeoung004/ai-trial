@@ -36,6 +36,12 @@ export default function Courtroom({
         <div className="court-window window-right" />
         <div className="court-wall-line" />
         <JudgeBench
+          ruling={court.result && ("decision" in court.result.judge
+            ? `${court.result.judge.decision} — ${court.result.judge.summary}`
+            : court.result.judge.conclusion) || undefined}
+          notice={court.execution?.status === "failed"
+            ? "The hearing stopped before a final ruling. Check the error below."
+            : undefined}
           state={
             court.result
               ? "ruling"

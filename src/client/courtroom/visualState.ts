@@ -9,6 +9,9 @@ export function expertVisual(
     .slice()
     .reverse()
     .find((event) => event.expertId === expertId);
+  if (event?.type === "EXPERT_FAILED")
+    return { state: "idle", summary: event.message || "This expert could not finish." };
+  if (!running) return { state: "idle", summary: event?.summary };
   const consensus = events
     .slice()
     .reverse()

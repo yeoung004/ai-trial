@@ -51,7 +51,7 @@ export function ExpertArea({
             <AgentBot
               profession={professionFor(role?.title, role?.domain)}
               state={
-                run
+                run && court.running
                   ? "speaking"
                   : role && !court.running
                     ? "idle"

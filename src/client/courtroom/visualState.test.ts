@@ -32,3 +32,8 @@ it("keeps expert animations independent and reacts to agreement", () => {
     expertVisual([event("EXPERT_CHANGED_POSITION", "A")], "A", true).state,
   ).toBe("disagreeing");
 });
+it("stops speaking when execution ends and shows expert failures", () => {
+  expect(expertVisual([event("EXPERT_COMPLETED", "A")], "A", false)).toEqual({ state: "idle", summary: "A concise position." });
+  const failed = { ...event("EXPERT_FAILED", "B"), message: "Output limit exceeded." };
+  expect(expertVisual([failed], "B", false)).toEqual({ state: "idle", summary: "Output limit exceeded." });
+});

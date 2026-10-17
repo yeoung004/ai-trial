@@ -3,6 +3,7 @@ export function DialogueBox({ court }: { court: CouncilState }) {
   const judge = court.result?.judge;
   return (
     <section
+      id={judge ? "judge-ruling" : undefined}
       className="dialogue-box"
       aria-label={judge ? "Judge ruling" : "Ask the council"}
     >

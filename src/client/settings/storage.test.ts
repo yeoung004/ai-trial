@@ -39,3 +39,9 @@ it("clears unsupported provider selections without choosing a paid replacement",
   expect(result.judgeModelId).toBe("");
   expect(result.expertModelOverrides).toEqual({ 1: "openai:chosen" });
 });
+it("upgrades old default output budgets but preserves customized profiles", () => {
+  const tokenBudgets = { roleGenerator: 250, yesNoExpert: 120, debateInitial: 220, debateRebuttal: 140, crossEvaluation: 100, judge: 650 };
+  expect(parseSettings(JSON.stringify({ tokenBudgets })).tokenBudgets).toEqual(defaultSettings.tokenBudgets);
+  expect(parseSettings(JSON.stringify({ tokenBudgets: { ...tokenBudgets, judge: 900 } })).tokenBudgets.judge).toBe(900);
+  expect(parseSettings(JSON.stringify({ outputBudgetVersion: 2, tokenBudgets })).tokenBudgets).toEqual(tokenBudgets);
+});

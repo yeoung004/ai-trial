@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { StageEvent } from "../../shared/types";
 import type { CouncilState } from "../hooks/useCouncil";
 export function ExpertDetail({
   index,
@@ -12,6 +13,8 @@ export function ExpertDetail({
   const dialog = useRef<HTMLDialogElement>(null);
   const role = court.roles[index];
   const run = court.result?.experts.find((run) => run.expertIndex === index);
+  const latest = (court.execution?.events as StageEvent[] | undefined)?.slice().reverse()
+    .find((event) => event.expertId === (role?.id || `expert-${index + 1}`));
   useEffect(() => {
     dialog.current?.showModal();
     return () => dialog.current?.close();
@@ -31,6 +34,8 @@ export function ExpertDetail({
           "A specialist will take this seat when the council begins."}
       </p>
       {role?.primaryQuestion && <p>{role.primaryQuestion}</p>}
+      {latest?.type === "EXPERT_FAILED" && <p role="alert">{latest.message}</p>}
+      {!run && latest?.summary && <p>{latest.summary}</p>}
       {run && (
         <dl>
           {Object.entries(run.answer).map(([key, value]) => (

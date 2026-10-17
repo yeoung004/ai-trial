@@ -1,3 +1,4 @@
+import { recordExpertFailure } from "./expertFailure.js";
 import { YES_NO_EXPERT_SYSTEM, YES_NO_JUDGE_SYSTEM } from "./prompts/index.js";
 
 import type {
@@ -61,16 +62,17 @@ export async function runYesNo(
     }),
   );
   execution.throwIfAborted();
+  const failures: ReturnType<typeof recordExpertFailure>[] = [];
   const experts = settled.flatMap((item, index) => {
     if (item.status === "fulfilled") return [item.value];
-    execution.degraded = true;
-    execution.failedExpertIndices.add(index);
+    failures.push(recordExpertFailure(execution, roles[index], index, item.reason));
     return [];
   });
   if (experts.length < 4)
     throw new CouncilError(
       "EXPERT_QUORUM_FAILED",
-      "Fewer than four YES / NO experts returned valid results.",
+      "Fewer than four YES / NO experts returned valid results. The Judge was not called. See each expert’s error for details.",
+      { failures },
     );
   const expert_consensus = {
     yes: experts.filter((run) => run.answer.vote === "YES").length,

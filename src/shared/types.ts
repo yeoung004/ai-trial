@@ -101,8 +101,9 @@ export type CouncilStage =
   | "COMPLETE"
   | "FAILED";
 
-export type CouncilEventType = "ROLE_GENERATION_STARTED" | "ROLES_CREATED" | "EXPERT_STARTED" | "EXPERT_COMPLETED" | "EXPERT_CHANGED_POSITION" | "DEBATE_ROUND_STARTED" | "CONSENSUS_REACHED" | "JUDGE_STARTED" | "JUDGE_COMPLETED";
+export type CouncilEventType = "ROLE_GENERATION_STARTED" | "ROLES_CREATED" | "EXPERT_STARTED" | "EXPERT_FAILED" | "EXPERT_COMPLETED" | "EXPERT_CHANGED_POSITION" | "DEBATE_ROUND_STARTED" | "CONSENSUS_REACHED" | "JUDGE_STARTED" | "JUDGE_COMPLETED";
 export interface StageEvent {
+  errorCode?: string;
   type?: CouncilEventType;
   expertId?: string;
   summary?: string;
