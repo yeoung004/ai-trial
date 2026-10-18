@@ -11,7 +11,7 @@ export function JudgeBench({ state, notice, ruling }: { state: JudgeVisualState;
       )}
       {!ruling && state === "thinking" && <p role="status">Considering the council’s arguments…</p>}
       <AgentBot profession="judge" state={state} />
-      {notice && <p className="speech-bubble has-speech" role="status">{notice}</p>}
+      {notice && <div className="speech-bubble has-speech" role="status"><div className="speech-bubble-content">{notice}</div></div>}
       <div className="bench-top" />
       <div className="bench-front">
         <span>✦</span>

@@ -1,13 +1,34 @@
+import { professionRegistry } from "../../../lib/characters/professionRegistry";
 import type { Profession } from "../outfits/ProfessionOutfit";
 export function ProfessionProp({ profession: p }: { profession: Profession }) {
   return (
     <g
+      data-testid={`accessory-${professionRegistry[p].accessory}`}
       stroke="#4E392C"
       strokeWidth="2"
       strokeLinejoin="round"
       strokeLinecap="round"
     >
-      {p === "engineer" ? (
+      {p === "teacher" ? (
+        <g transform="translate(86 114)">
+          <path d="M0 0Q13-4 25 2Q37-4 50 0V34Q36 30 25 36Q12 30 0 34Z" fill="#FFF8EC" />
+          <path d="M25 2V36M6 8H19M31 8H44M6 15H19M31 15H44" fill="none" />
+        </g>
+      ) : p === "trainer" ? (
+        <g transform="translate(85 125)">
+          <path d="M4 12H55" strokeWidth="7" />
+          <rect x="0" y="3" width="10" height="20" rx="2" fill="#708779" />
+          <rect x="10" y="0" width="10" height="26" rx="2" fill="#A5B9B4" />
+          <rect x="39" y="0" width="10" height="26" rx="2" fill="#A5B9B4" />
+          <rect x="49" y="3" width="10" height="20" rx="2" fill="#708779" />
+        </g>
+      ) : p === "researcher" ? (
+        <g transform="translate(110 107)">
+          <path d="M8 0H24M11 0V15L0 38Q-2 44 5 44H29Q36 44 34 38L21 15V0" fill="#DDECE5" />
+          <path d="M6 28H28L33 39Q34 42 28 42H6Q0 42 2 38Z" fill="#8DAE9A" stroke="none" />
+          <circle cx="14" cy="32" r="3" fill="#FFF8EC" stroke="none" />
+        </g>
+      ) : p === "engineer" ? (
         <>
           <rect x="81" y="122" width="55" height="34" rx="4" fill="#A5B9B4" />
           <path d="M77 156H141" strokeWidth="5" />

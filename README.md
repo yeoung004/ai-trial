@@ -62,3 +62,7 @@ npm run build
 ```
 
 Tests cover council quorums, role modes, early termination, Judge failure, retries, cancellation, budgets, persistence, provider cache behavior, no automatic provider failover, typed provider errors, settings validation, and character event mapping. Provider tests use deterministic mocks; they do not establish live credential availability.
+
+### UI regression checks
+
+Run `npm run test:ui` with Google Chrome installed. Playwright starts Vite if needed and mocks API responses, so these tests do not make paid AI calls. Tests cover viewport sizing, the anchored input, long rulings, and rendered profession accessories. Screenshots are written to the ignored `test-results/` directory.

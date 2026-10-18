@@ -1,0 +1,98 @@
+:root {
+  --court-bot: 108px;
+  --court-judge: 130px;
+  --court-bench: 280px;
+  --court-gap: 16px;
+  --court-text: 16px;
+  font-size: 16px;
+}
+.courtroom-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100dvh;
+  max-width: 1120px;
+  padding: 0 28px max(10px, env(safe-area-inset-bottom));
+  overflow: hidden;
+}
+.court-header { height: 60px; }
+.court-brand { font-size: 20px; gap: 10px; }
+.court-brand > span { font-size: 24px; }
+.courtroom-content { min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 12px 8px 16px; }
+.courtroom-scene { min-height: 0; padding: 0 16px; margin-bottom: 16px; }
+.judge-dais { width: var(--court-bench); }
+.agent-bot, .seats-5 .agent-bot { width: var(--court-bot); }
+.agent-bot.judge-bot { width: var(--court-judge); margin-bottom: -20px; }
+.bench-top { height: 14px; }
+.bench-front { height: 51px; }
+.court-window { width: 69px; height: 108px; border-width: 7px; top: 32px; }
+.expert-area { max-width: 800px; margin-top: 20px; gap: var(--court-gap); }
+.expert-seat strong { font-size: var(--court-text); max-width: 210px; }
+.expert-seat .metadata { font-size: 14px; }
+.speech-bubble, .seats-5 .speech-bubble { font-size: var(--court-text); padding: 0; max-width: 232px; margin-bottom: 8px; }
+/* Keep the tail outside the clamped text. */
+.speech-bubble { --bubble-max-height: 100px; max-height: var(--bubble-max-height); overflow: visible; }
+.speech-bubble-content {
+  max-height: calc(var(--bubble-max-height) - 3px);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  margin: 8px 12px;
+  max-height: 72px;
+}
+.speech-bubble::after {
+  width: 0;
+  height: 0;
+  top: 100%;
+  bottom: auto;
+  left: calc(50% - 8px);
+  background: transparent;
+  transform: none;
+  border: 8px solid transparent;
+  border-bottom: 0;
+  border-top-color: #fff8ec;
+  filter: drop-shadow(0 2px 0 #cfb99c);
+  pointer-events: none;
+}
+.seats-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); max-width: 100%; }
+.seats-5 > .expert-seat, .seats-5 > .expert-seat:nth-child(4), .seats-5 > .expert-seat:nth-child(5) { grid-column: auto; }
+.podium { width: 184px; height: 34px; margin-top: 16px; gap: 14px; font-size: 12px; }
+.dialogue-dock { min-width: 0; padding-top: 8px; }
+.dialogue-box { width: 100%; max-width: 100%; padding: 14px 20px; border-radius: 16px; }
+.dialogue-box textarea { min-height: 64px; height: 64px; max-height: 96px; resize: none; overflow-y: auto; font-size: 16px; line-height: 1.4; padding: 8px 0; }
+.dialogue-box textarea::placeholder { font-size: 16px; }
+.dialogue-box button { padding: 6px 12px; }
+.dialogue-box .segmented button { font-size: 14px; padding: 6px 9px; }
+.dialogue-controls { gap: 10px; }
+.question-options { gap: 8px; }
+.dialogue-box .error-message { max-height: 64px; overflow: auto; margin-bottom: 0; font-size: 16px; }
+.dialogue-speaker { font-size: 12px; }
+.ruling-copy { font-size: 20px; }
+.judge-ruling-preview { width: min(352px, calc(100vw - 64px)); font-size: 16px; padding: 12px 16px; margin: 6px 0 14px; }
+.role-lineup { margin: 16px auto; }
+.settings-page { max-width: 960px; }
+@media (max-height: 800px) {
+  :root { --court-bot: 96px; --court-judge: 112px; --court-bench: 252px; }
+  .court-header { height: 50px; }
+  .expert-area { margin-top: 12px; }
+  .courtroom-content { padding-top: 8px; }
+}
+@media (max-width: 800px) {
+  .courtroom-page { padding-inline: 12px; }
+  .courtroom-scene { padding-inline: 0; }
+  .court-window { width: 40px; height: 80px; }
+  .seats-5 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  :root { --court-bot: 80px; --court-judge: 104px; --court-gap: 8px; }
+  .dialogue-box { padding: 10px 12px; }
+  .dialogue-controls { flex-direction: row; align-items: end; }
+  .question-options { flex-direction: column; gap: 4px; }
+  .dialogue-box .segmented button { font-size: 12px; padding: 5px; }
+  .speech-bubble { display: block; font-size: 16px; padding: 0; overflow-wrap: anywhere; }
+  .send-button { gap: 4px; }
+}
+.bench-front { gap: 10px; }
+.bench-front > span:nth-child(2) { font-size: 11px; white-space: nowrap; }
+.bench-front > span:not(:nth-child(2)) { font-size: 18px; }

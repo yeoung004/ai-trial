@@ -29,11 +29,13 @@ export function AgentBot({
     <div
       className={`agent-bot bot-${state} ${profession === "judge" ? "judge-bot" : ""}`}
       style={{ "--delay": `${-(hash % 23) / 10}s` } as React.CSSProperties}
+      data-testid="agent-bot"
+      data-profession={profession}
       aria-hidden="true"
     >
       <svg viewBox="0 -10 160 185">
         <BotShadow />
-        <g className="bot-body">
+        <g className="bot-body" data-testid="animated-body">
           <BotBody />
           <ProfessionOutfit profession={profession} />
           <g className="bot-head">

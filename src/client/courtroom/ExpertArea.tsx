@@ -1,5 +1,5 @@
 import { AgentBot } from "../bot/AgentBot";
-import { professionFor } from "../bot/outfits/ProfessionOutfit";
+import { resolveAppearance } from "../../lib/characters/resolveAppearance";
 import { expertVisual } from "./visualState";
 import type { CouncilState } from "../hooks/useCouncil";
 import type { StageEvent } from "../../shared/types";
@@ -38,6 +38,7 @@ export function ExpertArea({
             }
           >
             <div className={`speech-bubble ${summary ? "has-speech" : ""}`}>
+              <div className="speech-bubble-content">
               {summary
                 ? summary.slice(0, 200)
                 : visual.state === "thinking"
@@ -47,9 +48,10 @@ export function ExpertArea({
                     : role?.title
                       ? "Ready when you are."
                       : "Ready to be summoned."}
+              </div>
             </div>
             <AgentBot
-              profession={professionFor(role?.title, role?.domain)}
+              profession={resolveAppearance(role?.title, role?.domain, role && "visualCategory" in role ? role.visualCategory : undefined).category}
               state={
                 run && court.running
                   ? "speaking"

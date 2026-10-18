@@ -13,10 +13,10 @@ export function ProfessionHat({ profession: p }: { profession: Profession }) {
           fill="#FFFDF5"
         />
       ) : p === "controls" ? (
-        <>
+        <g data-testid="hat-helmet">
           <path d="M37 35Q40 5 80 5Q120 5 123 35Z" fill="#E7B95E" />
           <path d="M30 35H130M73 8V30M87 8V30" fill="none" />
-        </>
+        </g>
       ) : p === "designer" ? (
         <>
           <path d="M34 28Q42 5 88 9Q124 10 124 27L109 33H47Z" fill="#9BAF9C" />

@@ -207,6 +207,9 @@ textarea {
   margin: 0 auto;
   position: relative;
 }
+.speech-bubble {
+  max-height: 100px;
+}
 .judge-label {
   font-family: "Nunito", sans-serif;
   font-weight: 800;

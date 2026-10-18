@@ -1,27 +1,5 @@
-export type Profession =
-  | "engineer"
-  | "chef"
-  | "doctor"
-  | "economist"
-  | "controls"
-  | "lawyer"
-  | "researcher"
-  | "designer"
-  | "general"
-  | "judge";
-export function professionFor(title = "", domain = ""): Profession {
-  const text = `${title} ${domain}`.toLowerCase();
-  if (/control|mechanical|industrial|construction/.test(text))
-    return "controls";
-  if (/doctor|medic|health|nurs/.test(text)) return "doctor";
-  if (/chef|food|cook|nutrition/.test(text)) return "chef";
-  if (/law|legal|policy/.test(text)) return "lawyer";
-  if (/econom|financ|invest|business/.test(text)) return "economist";
-  if (/design|art|creativ/.test(text)) return "designer";
-  if (/research|scient|academ/.test(text)) return "researcher";
-  if (/engineer|software|develop|tech|data/.test(text)) return "engineer";
-  return "general";
-}
+import type { Profession } from "../../../lib/characters/professionRegistry";
+export type { Profession } from "../../../lib/characters/professionRegistry";
 export function ProfessionOutfit({
   profession: p,
 }: {
@@ -29,6 +7,8 @@ export function ProfessionOutfit({
 }) {
   if (p === "general") return null;
   const color = {
+    teacher: "#8C9EAD",
+    trainer: "#738E7C",
     engineer: "#738E7C",
     chef: "#FFF8EC",
     doctor: "#FFF8EC",

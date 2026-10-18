@@ -31,6 +31,7 @@ export default function Courtroom({
           </button>
         </div>
       </header>
+      <div className="courtroom-content" data-testid="courtroom-scroll">
       <section className="courtroom-scene" aria-label="AI courtroom">
         <div className="court-window window-left" />
         <div className="court-window window-right" />
@@ -59,8 +60,10 @@ export default function Courtroom({
           <span>✦</span>
         </div>
       </section>
-      <DialogueBox court={court} />
       <RoleLineup court={court} />
+      {court.result && <DialogueBox court={court} view="ruling" />}
+      </div>
+      <footer className="dialogue-dock" data-testid="input-dock"><DialogueBox court={court} /></footer>
       {selected !== null && (
         <ExpertDetail
           index={selected}

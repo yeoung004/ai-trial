@@ -1,6 +1,6 @@
 import type { CouncilState } from "../hooks/useCouncil";
-export function DialogueBox({ court }: { court: CouncilState }) {
-  const judge = court.result?.judge;
+export function DialogueBox({ court, view = "input" }: { court: CouncilState; view?: "input" | "ruling" }) {
+  const judge = view === "ruling" ? court.result?.judge : undefined;
   return (
     <section
       id={judge ? "judge-ruling" : undefined}
@@ -93,7 +93,7 @@ export function DialogueBox({ court }: { court: CouncilState }) {
           </div>
         </>
       )}
-      {court.error && (
+      {view === "input" && court.error && (
         <p className="error-message" role="alert">
           {court.error}
         </p>
